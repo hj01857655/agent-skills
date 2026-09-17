@@ -13,7 +13,7 @@ Shipped today: **self-improvement-loop** (alias: `ratchet`) — one loop done pr
 
 ## self-improvement-loop (alias: `ratchet`)
 
-> A self-improvement-loop only turns one way. So does this:
+> A ratchet only turns one way. So does this:
 > **capture evidence → promote what repeats → prove the rule still holds.**
 > A rule that regresses is caught by its own guard and sent back to be rewritten.
 > Progress accumulates; it does not silently unwind.
@@ -294,5 +294,5 @@ What is genuinely different here:
   judgement made from memory.
 
 What is borrowed deliberately is the packaging lesson: a portable manifest plus an
-`install.mjs` that covers 55 roots across 46 products beats hand-copying each skill into
+`install.mjs` that covers 56 roots across 46 products beats hand-copying each skill into
 each agent's directory.
