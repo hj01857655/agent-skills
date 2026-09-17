@@ -4,7 +4,8 @@
 // Deterministic identity makes dedupe exact and recurrence counters meaningful.
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync, statSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, resolve, relative, sep } from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0] || 'help'
@@ -66,7 +67,7 @@ const emit = (o) => {
 const days = (n) => n * 86400000
 const str = (v) => (typeof v === 'string' ? v : undefined)
 
-const ALLOWED_STATUS = ['open', 'watching', 'ineffective', 'resolved', 'wont_fix']
+const ALLOWED_STATUS = ['open', 'watching', 'enforced', 'ineffective', 'resolved', 'wont_fix']
 const ALLOWED_RESULT = ['held', 'recurred']
 // Accept the obvious spellings (`wontfix`, `Wont Fix`) but never keep an unknown
 // status: rollup only archives resolved/wont_fix, so a typo'd status would make an
@@ -163,6 +164,10 @@ function stats() {
     recurrence_after_promotion_pct: promoted.length ? Math.round((recurred.length / promoted.length) * 100) : null,
     awaiting_verification: rows.filter((r) => r.status === 'watching').length,
     watchlist: rows.filter((r) => r.status === 'watching').map((r) => ({ id: r.id, watch: r.watch, target: r.promoted_to })),
+    // Rules a command now checks for us. These need no review discipline: `check` fails
+    // on them. Counting them separately is the point — it is the difference between
+    // rules that depend on attention and rules that do not.
+    enforced_total: rows.filter((r) => r.status === 'enforced' && r.guard).length,
     over_budget: Object.entries(openByArea).filter(([, n]) => n > budget).map(([a, n]) => a + ':' + n),
     top_recurring: rows.slice().sort((a, b) => (b.recurrence || 1) - (a.recurrence || 1)).slice(0, 5)
       .map((r) => ({ id: r.id, key: r.pattern_key || r.summary, recurrence: r.recurrence, status: r.status }))
@@ -199,10 +204,13 @@ function brief() {
   const watching = rows.filter((r) => r.status === 'watching')
   const ineffective = rows.filter((r) => r.status === 'ineffective')
   const ready = rows.filter((r) => r.status === 'open' && isEligible(r))
+  const unguarded = watching.length
   const lines = []
   if (watching.length) {
-    lines.push('[learnings] ' + watching.length + ' rule(s) awaiting verification - check whether each recurrence happened:')
+    lines.push('[learnings] ' + unguarded + ' rule(s) awaiting verification - check whether each recurrence happened:')
     for (const r of watching.slice(0, max)) lines.push('  - ' + r.id + ': ' + r.watch)
+    const guardable = watching.filter((r) => r.watch)
+    if (guardable.length) lines.push('  (' + guardable.length + ' of these could become a guard: `ledger.mjs enforce <id> --cmd "..."` and stop reviewing them by hand)')
   }
   if (ineffective.length) {
     lines.push('[learnings] ' + ineffective.length + ' rule(s) marked ineffective - rewrite or automate, do not re-promote the same wording:')
@@ -301,7 +309,6 @@ function extract(id) {
 // Promotion is gated, not advisory: the SKILL.md thresholds are enforced here, so a
 // rule cannot enter the watch phase without evidence and a way to be verified.
 const isEligible = (r) => (r.recurrence || 1) >= 3 || (r.category === 'correction' && (r.recurrence || 1) >= 2)
-
 // A vague pattern_key is the one defect that silently corrupts everything downstream
 // (dedupe, recurrence, promotion), so it is worth surfacing on demand.
 const VAGUE_KEY = /^(fix|bug|issue|problem|error|thing|stuff|misc|tmp|test|other|问题|修复|错误)$/i
@@ -330,9 +337,85 @@ function doctor() {
   return { active: rows.length, archived: archived.length, ok: issues.length === 0, issues }
 }
 
+// --- Compiled rules -------------------------------------------------------------
+// A rule that lives only as prose is verified by nothing: whether it held is a human
+// judgement made from memory. This turns the watch predicate into an executable guard,
+// so "did the rule hold?" becomes an exit code the agent — and CI — can read.
+// This is the step past watching: watch asks a human to notice, enforce makes the
+// violation fail on its own.
+
+const runGuard = (cmd, cwd) => {
+  const r = spawnSync(cmd, { cwd, shell: true, encoding: 'utf8', timeout: Number(str(flag.timeout) || 60000) })
+  // A command that could not even start must not be read as "the rule is violated" — a
+  // broken guard has to be distinguishable from a regression, or a typo in the guard
+  // marks the rule as failed and teaches everyone to ignore the check. The signal
+  // differs by shell: POSIX shells exit 127, cmd.exe exits 9009, and some shells only
+  // say so in the text.
+  const text = String((r.stderr || '') + (r.stdout || ''))
+  const couldNotRun = r.error != null || r.status === 127 || r.status === 9009 ||
+    /command not found|not recognized as an internal|No such file or directory/i.test(text)
+  return { code: r.status, broken: couldNotRun, output: text.trim().slice(0, 2000) }
+}
+
+function enforce(id) {
+  const cmd = str(flag.cmd)
+  if (!cmd) return { error: '--cmd "<guard command>" is required; the guard must exit non-zero when the rule is violated' }
+  const rows = readJsonl(ledgerPath)
+  const row = rows.find((r) => r.id === id)
+  if (!row) return { error: 'no such id: ' + id }
+  if (!row.promoted_to && !flag.force) {
+    return { error: 'entry is not promoted (no promoted_to); enforce a rule that has a home, or pass --force' }
+  }
+  // Prove the guard is meaningful before trusting it: run it once now. A guard that is
+  // already failing is a false alarm, and one that passes by doing nothing is worse.
+  const probe = runGuard(cmd, root)
+  row.guard = { cmd, added: now() }
+  row.guard_result = { at: now(), code: probe.code, broken: probe.broken, output: probe.output, phase: 'probe' }
+  row.status = probe.broken ? row.status : 'enforced'
+  writeJsonl(rows, ledgerPath)
+  return {
+    id: row.id, status: row.status, guard: cmd,
+    probe: probe.broken ? 'BROKEN - command could not run (check the path/quoting); not marking enforced'
+      : probe.code === 0 ? 'clean - exits 0 now, which is what a passing guard looks like'
+      : 'FAILING NOW - the guard already reports a violation; fix the violation or the guard',
+    next: 'Add `ledger.mjs check` to your test/CI command so a regression fails the build.'
+  }
+}
+
+function check() {
+  const rows = readJsonl(ledgerPath)
+  const guards = rows.filter((r) => r.guard && r.guard.cmd && r.status !== 'wont_fix')
+  const failures = []
+  const broken = []
+  for (const row of guards) {
+    const res = runGuard(row.guard.cmd, root)
+    const wasFailing = row.guard_result && row.guard_result.code !== 0 && !row.guard_result.broken
+    row.guard_result = { at: now(), code: res.code, broken: res.broken, output: res.output, phase: 'check' }
+    if (res.broken) {
+      broken.push({ id: row.id, cmd: row.guard.cmd, output: res.output })
+      continue
+    }
+    if (res.code !== 0) {
+      failures.push({ id: row.id, cmd: row.guard.cmd, output: res.output, summary: row.summary })
+      row.status = 'ineffective'
+      // Idempotent per the same rule as `verify`: one ongoing violation is one
+      // regression, not one per run, or a broken build would inflate recurrence.
+      if (!wasFailing) { row.recurrence = (row.recurrence || 1) + 1; row.last_seen = now() }
+    } else if (row.status === 'ineffective' && row.guard_result.code === 0) {
+      row.status = 'enforced'
+    }
+  }
+  writeJsonl(rows, ledgerPath)
+  return {
+    ran: guards.length, passed: guards.length - failures.length - broken.length,
+    regressed: failures, broken_guards: broken, enforced_total: rows.filter((r) => r.status === 'enforced').length
+  }
+}
+
 // Two entries can end up describing one problem (a renamed pattern_key, or a key that
 // used to normalize to ''). Merging folds the evidence together instead of deleting it.
-function merge(keepId, dropId) {  const rows = readJsonl(ledgerPath)
+function merge(keepId, dropId) {
+  const rows = readJsonl(ledgerPath)
   const keep = rows.find((r) => r.id === keepId)
   const drop = rows.find((r) => r.id === dropId)
   if (!keep) return { error: 'no such id: ' + keepId }
@@ -395,17 +478,19 @@ const commands = {
   doctor,
   merge: () => merge(pos[0], pos[1]),
   extract: () => extract(pos[0]),
+  enforce: () => enforce(pos[0]),
+  check,
   brief
 }
 
 if (!commands[cmd]) {
-  process.stdout.write('usage: ledger.mjs <ingest|list|stats|digest|rollup|status|promote|verify|merge|doctor|extract|brief> [args]\n')
+  process.stdout.write('usage: ledger.mjs <ingest|list|stats|digest|rollup|status|promote|verify|merge|doctor|extract|enforce|check|brief> [args]\n')
   process.exit(cmd === 'help' ? 0 : 1)
 }
 // Only mutations take the lock; reads are harmless alongside a writer.
-const WRITES = new Set(['ingest', 'rollup', 'status', 'promote', 'verify', 'merge', 'extract'])
+const WRITES = new Set(['ingest', 'rollup', 'status', 'promote', 'verify', 'merge', 'extract', 'enforce', 'check'])
 const result = WRITES.has(cmd) ? withLock(() => commands[cmd]()) : commands[cmd]()
 emit(result)
 // A refused operation must not exit 0, or a caller that checks the exit code sees success.
 // A dirty `doctor` result is also a failure, so CI can gate on it.
-if (result && (result.error || (cmd === 'doctor' && result.ok === false))) process.exit(1)
+if (result && (result.error || (cmd === 'check' && result.regressed && result.regressed.length > 0) || (cmd === 'doctor' && result.ok === false))) process.exit(1)

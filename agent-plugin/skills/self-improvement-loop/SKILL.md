@@ -16,6 +16,7 @@ Three phases, one ledger. Run only the phase the moment calls for.
 | **Capture** | A failure, correction, or discovery worth keeping | An entry in `.learnings/ledger.jsonl` |
 | **Promote** | A task boundary; an entry crossed the threshold | A durable rule in the project's native memory |
 | **Verify** | A periodic review; a mistake feels familiar | A verdict on each watching rule; a pruned ledger |
+| **Enforce** | A rule can be expressed as a command | A guard that fails the build when the rule is broken |
 
 ## Start here
 
@@ -208,11 +209,41 @@ The surviving entry absorbs the other's recurrence, tasks, and files; the droppe
 
 Detection is the other half of triggering: capture only happens if the agent notices something broke. `scripts/hook.mjs` surfaces rules awaiting attention at session start; `scripts/detect-error.mjs` fires on `PostToolUseFailure` and prints a reminder only for failures worth recording — staying silent for expected ones (a typo's `command not found`) and for a repeat of the same failure within ten minutes. Wiring for both: `references/triggers.md`.
 
+## Enforce: make the rule fail on its own
+
+Watching is still a judgement made from memory. The step past it is to give the rule a
+**guard** — a command that exits non-zero exactly when the rule is violated — so
+"did it hold?" becomes an exit code instead of an opinion.
+
+```bash
+node .learnings/ledger.mjs enforce lrn-ab12cd34 \
+  --cmd "test ! -f package-lock.json"        # exit 1 == this rule is being broken
+
+# add to the project's test/CI command, alongside the test runner
+node .learnings/ledger.mjs check
+```
+
+`enforce` runs the guard once immediately and reports what it saw — `clean` (exits 0,
+which is what a passing guard looks like), `FAILING NOW`, or `BROKEN` (the command could
+not run at all; check the path and quoting). Only a clean guard moves the entry to
+`enforced`.
+
+`check` runs every guard and, when one fails, marks that rule `ineffective`, bumps its
+recurrence, and **exits 1** — so a build that runs `check` goes red the moment a rule
+regresses, with no one needing to remember to look. Re-running does not inflate
+recurrence: one ongoing violation is one regression. A guard that merely broke is
+reported separately and does **not** fail the build — a typo in a guard must never be
+mistaken for a rule that stopped holding.
+
+Prefer a guard over a note once you can express one. A rule with a guard needs no
+review discipline at all.
+
 ### System health
 
 `stats` reports the metrics that say whether this loop is working:
 
 - `awaiting_verification` / `watchlist` — every `watching` rule and its predicate. **Start each review here**; this is the to-do list.
+- `enforced_total` — rules with a live guard. These need no review: `check` catches them.
 - `promoted` — rules under watch, counting archived ones too (pruning the ledger must not reset the history).
 - `recurrence_after_promotion_pct` — **the key number.** Low means rules stick. High means promotion is producing words, not change.
 - `top_recurring` — entries that keep coming back; each deserves a promotion or a real fix.
@@ -242,3 +273,5 @@ This is **self-evaluation**: the loop measures whether its own rules changed beh
 | Never running `doctor` | It is what catches vague keys and duplicate identities before they corrupt the counts. |
 | Leaving the reminder unwired | Run `brief` at task start, or wire it per `references/triggers.md` — an unwired loop only fires when someone remembers. |
 | A rule that keeps holding but never becomes a skill | `extract` it; rules that generalize belong in a skill, not an ever-growing ledger. |
+| Leaving a rule as prose when it could be a command | `enforce` it — a guard removes the need for anyone to remember to check. |
+| Treating a broken guard as a regression | A guard that cannot run is reported separately; fix the command, not the rule. |
