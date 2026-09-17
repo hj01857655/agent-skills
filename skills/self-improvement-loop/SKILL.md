@@ -128,7 +128,7 @@ node .learnings/ledger.mjs list --status open
 
 **Distill, then place.** Turn the entry into one imperative rule and cut the incident story — verbose: *"Attempted npm install but the project uses pnpm workspaces; lock file is pnpm-lock.yaml."* → rule: *"Use `pnpm install`; this repo uses pnpm workspaces."*
 
-`promote` **writes the rule into its home itself** — one line, under the named section, behind an invisible `<!-- ratchet:<id> -->` marker:
+`promote` **writes the rule into its home itself** — one line, under the named section, behind an invisible `<!-- self-improvement-loop:<id> -->` marker:
 
 ```bash
 node .learnings/ledger.mjs promote lrn-ab12cd34 \

@@ -481,7 +481,11 @@ function check() {
 // home behind a marker, so the claim is checkable, and `check` verifies it.
 
 const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const marker = (id) => 'ratchet:' + id
+// Namespace = the skill's own name, so a line written into someone's CLAUDE.md names the
+// tool that owns it. Renaming this is a one-time cost paid before first release: every
+// `promote` after it writes the new marker, and nothing shipped depends on the old one.
+const MARKER_NAMESPACE = 'self-improvement-loop'
+const marker = (id) => MARKER_NAMESPACE + ':' + id
 const sha = (s) => createHash('sha1').update(String(s)).digest('hex').slice(0, 12)
 
 const resolveTarget = (target) => {
