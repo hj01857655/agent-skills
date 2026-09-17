@@ -1,15 +1,15 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT--0-blue" alt="License: MIT-0">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="Node >= 18">
-  <img src="https://img.shields.io/badge/platforms-21-informational" alt="21 platforms">
+  <img src="https://img.shields.io/badge/platforms-23-informational" alt="23 platforms">
 </p>
 
 # ratchet
 
 > A ratchet only turns one way. So does this:
-> **capture evidence → promote what repeats → verify the rule held.**
-> A rule that regresses is caught by its own watch predicate and sent back to be
-> rewritten. Progress accumulates; it does not silently unwind.
+> **capture evidence → promote what repeats → prove the rule still holds.**
+> A rule that regresses is caught by its own guard and sent back to be rewritten.
+> Progress accumulates; it does not silently unwind.
 
 An agent skill that turns hard-won lessons into rules that are actually checked.
 
@@ -19,7 +19,7 @@ checked as a wish, not a rule.
 
 ## Why the loop, not just the log
 
-A log has no opinion. It grows, nobody reads it, and the same mistake comes back. Three
+A log has no opinion. It grows, nobody reads it, and the same mistake comes back. These
 mechanisms are what make this different:
 
 | Mechanism | What it prevents |
@@ -41,15 +41,26 @@ The repo ships an installer that probes for known skill roots and installs only 
 platform is actually present. It never creates a directory for an agent you do not have.
 
 ```bash
+node skills/self-improvement-loop/scripts/install.mjs --list      # which platforms exist here
 node skills/self-improvement-loop/scripts/install.mjs --dry-run   # show the plan
-node skills/self-improvement-loop/scripts/install.mjs             # install
-node skills/self-improvement-loop/scripts/install.mjs --list      # what it can see
-node skills/self-improvement-loop/scripts/install.mjs --only claude,breezell
+node skills/self-improvement-loop/scripts/install.mjs             # install everywhere
+node skills/self-improvement-loop/scripts/install.mjs --only claude,codex
+node skills/self-improvement-loop/scripts/install.mjs --status    # where is it installed?
+node skills/self-improvement-loop/scripts/install.mjs --uninstall # remove every copy
 ```
+
+`--only` takes short ids (`claude`, `codex`, `cursor`, ...) — see `--list`. Uninstalling by
+hand across 23 roots is how stale copies get left behind, so `--uninstall` (with
+`--dry-run` first, if you like) is the other half of `install`.
 
 Covers 23 roots across Breezell, Claude Code, Codex CLI, the shared `.agents` hub, Cursor,
 Windsurf (both layouts), Gemini CLI, Antigravity (CLI + IDE), GitHub Copilot, Cline,
 Continue, Kiro, WorkBuddy, QoderWork, Grok, Amp, Trae, ZCode, Factory, Devin, CodeBuddy.
+
+Two of these roots (`.agents` and `.breezell`) are managed by a package manager that keeps
+its own manifest (`npx skills`, the skillhub store). A skill copied in by hand is not in
+that manifest, so the manager may prune it on its next write; the installer says so after
+installing there. The `agent-plugin/` bundle below is the durable route for those.
 
 ### 2. One platform, by hand
 
@@ -121,8 +132,9 @@ node .learnings/ledger.mjs enforce lrn-ab12cd34 --cmd "! grep -rq 'package-lock.
 node .learnings/ledger.mjs check
 ```
 
-The script refuses a promotion below the threshold, and refuses one with no `--watch` —
-those are the two ways a rule becomes unverifiable.
+The script refuses a promotion below the threshold, and refuses one with no `--watch` or
+`--target` — those are the ways a rule becomes unverifiable or homeless.
+
 ## Make it fire on its own
 
 Everything above depends on someone remembering to run it. `brief` is the reminder, and
@@ -143,7 +155,10 @@ node .learnings/ledger.mjs brief   # prints what needs attention, or nothing
 | `enforce <id> --cmd C` | Compile the rule into a guard; fails the build when broken |
 | `check` | Run guards + verify every rule is still in its home; exits 1 on regression |
 | `verify <id> --result held\|recurred [--note N]` | Record whether it held (idempotent) |
-| `extract <id> [--dir D]` | Turn a settled rule into a new skill skeleton || `merge <keep-id> <drop-id>` | Fold a duplicate; evidence preserved, not deleted |
+| `extract <id> [--dir D]` | Turn a settled rule into a new skill skeleton |
+| `merge <keep-id> <drop-id>` | Fold a duplicate; evidence preserved, not deleted |
+| `probe <id> --result held\|recurred [--note N]` | Behavioral verification: reconstruct the situation |
+| `audit [--apply]` | Measure the loop's funnel and retune its thresholds |
 | `doctor` | Integrity check; exits 1 when dirty |
 | `brief [--max N]` | Reminder text for context injection |
 | `stats [--budget N]` | Counts, budget, recurrence-after-promotion % |

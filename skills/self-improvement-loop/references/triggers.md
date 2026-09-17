@@ -40,6 +40,11 @@ Rung 2 is a one-line pointer in whatever file the agent reads at session start; 
 snippet is below. Where an agent has no entry file and no hooks, the skill's `description`
 is the only trigger — which works, just without the automatic reminder.
 
+> If the reminder never fires, check whether another tool manages that root. `.agents`
+> (`npx skills`) and `.breezell` (the skillhub store) keep manifests; a hand-copied skill
+> is absent from them and can be pruned. `install.mjs --status` shows what is currently
+> installed, and the `agent-plugin/` bundle is the durable install route.
+
 ## Capability ladder
 
 Wire the highest rung the platform supports. Every rung works; the lower ones just

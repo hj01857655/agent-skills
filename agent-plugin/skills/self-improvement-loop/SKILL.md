@@ -7,16 +7,19 @@ metadata:
 
 # Self-Improvement Loop
 
-A learning system that never checks itself is just a diary. This runs the full loop: capture evidence, promote what repeats, verify that promoted rules actually changed behavior.
+A learning system that never checks itself is just a diary. This runs the full loop: capture evidence, promote what repeats, then prove the rule still holds.
 
-Three phases, one ledger. Run only the phase the moment calls for.
+Five phases, one ledger. Run only the phase the moment calls for.
 
-| Phase | Trigger | Output |
-|---|---|---|
-| **Capture** | A failure, correction, or discovery worth keeping | An entry in `.learnings/ledger.jsonl` |
-| **Promote** | A task boundary; an entry crossed the threshold | A durable rule in the project's native memory |
-| **Verify** | A periodic review; a mistake feels familiar | A verdict on each watching rule; a pruned ledger |
-| **Enforce** | A rule can be expressed as a command | A guard that fails the build when the rule is broken |
+| # | Phase | Trigger | Output |
+|---|---|---|---|
+| 1 | **Capture** | A failure, correction, or discovery worth keeping | An entry in `.learnings/ledger.jsonl` |
+| 2 | **Promote** | An entry crossed the threshold | The rule **written into** a project file, behind a marker |
+| 3 | **Watch** | A rule that cannot be expressed as a command | A verdict per rule at review time |
+| 4 | **Enforce** | A rule that *can* be expressed as a command | A guard that fails the build when the rule is broken |
+| 5 | **Check** | Every test / CI run | Exit code — covers phases 3 and 4 without anyone remembering |
+
+There is also a sixth thing that is not a phase: `audit` inspects the loop's own hit rate and retunes its thresholds. See [Audit](#audit-the-loop-retunes-itself).
 
 ## Start here
 
@@ -278,7 +281,6 @@ If `recurrence_after_promotion_pct` stays high across reviews, the promotion bar
 This is **self-evaluation**: the loop measures whether its own rules changed behavior, and corrects itself. It is not self-modifying code — the agent does the thinking; this skill supplies the loop, the thresholds, and the ledger.
 
 ## Audit: the loop retunes itself
-
 Everything above improves the project. This improves *the loop*. The thresholds are not
 constants — they live in `.learnings/config.json` and `audit` measures the funnel, says
 what the numbers imply, and with `--apply` turns the knobs.
