@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "self-improvement-loop",
+  "version": "1.0.0",
+  "description": "Capture evidence, promote what repeats, verify that promoted rules actually changed behavior. A self-evaluating learning loop for coding agents.",
+  "author": {
+    "name": "hj01857655"
+  },
+  "homepage": "https://github.com/hj01857655/ratchet",
+  "repository": "https://github.com/hj01857655/ratchet",
+  "license": "MIT-0",
+  "keywords": [
+    "agent-skills",
+    "agent-plugins",
+    "self-improvement",
+    "learnings",
+    "coding-agents"
+  ]
+}
