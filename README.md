@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT--0-blue" alt="License: MIT-0">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="Node >= 18">
-  <img src="https://img.shields.io/badge/platforms-55%20install%20roots-2ea44f" alt="56 install roots">
+  <img src="https://img.shields.io/badge/platforms-56%20install%20roots-2ea44f" alt="56 install roots">
 </p>
 
 # ratchet
