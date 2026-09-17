@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Deterministic ledger ops for the self-improvement skill series. Zero deps, Node 18+.
+// Deterministic ledger ops for the self-improvement loop. Zero deps, Node 18+.
 // The JSONL ledger is the machine truth; Markdown digests are regenerated views.
 // Deterministic identity makes dedupe exact and recurrence counters meaningful.
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 const argv = process.argv.slice(2)
@@ -25,6 +25,28 @@ const ledgerPath = join(dir, 'ledger.jsonl')
 const archivePath = join(dir, 'archive.jsonl')
 const inboxDir = join(dir, 'inbox')
 const digestPath = join(dir, 'DIGEST.md')
+const lockPath = join(dir, 'ledger.lock')
+
+// Every mutation is read-modify-write on one file: two overlapping runs would each
+// read the ledger and the second write would silently discard the first. The lock
+// makes that impossible; a lock older than the threshold is treated as abandoned.
+const LOCK_STALE_MS = 10000
+const withLock = (fn) => {
+  mkdirSync(dir, { recursive: true })
+  let acquired = false
+  for (let attempt = 0; attempt < 2 && !acquired; attempt++) {
+    try {
+      writeFileSync(lockPath, JSON.stringify({ pid: process.pid, at: Date.now() }), { flag: 'wx' })
+      acquired = true
+    } catch {
+      const stale = existsSync(lockPath) && (Date.now() - statSync(lockPath).mtimeMs) > LOCK_STALE_MS
+      if (!stale) return { error: 'ledger is locked by another process (' + lockPath + '); retry in a moment' }
+      try { unlinkSync(lockPath) } catch { /* another process may have released it */ }
+    }
+  }
+  if (!acquired) return { error: 'could not acquire ledger lock at ' + lockPath }
+  try { return fn() } finally { try { unlinkSync(lockPath) } catch { /* already gone */ } }
+}
 
 const now = () => new Date().toISOString()
 // Unicode-safe: `\p{L}\p{N}` keeps CJK and every other script. Stripping to
@@ -75,6 +97,7 @@ function ingest() {
       hit.recurrence = (hit.recurrence || 1) + 1
       hit.last_seen = now()
       hit.tasks = [...new Set([...(hit.tasks || []), ...(entry.task ? [entry.task] : [])])]
+      hit.files = [...new Set([...(hit.files || []), ...(entry.files || [])])]
       if (entry.priority) hit.priority = entry.priority
       report.bumped.push({ id: hit.id, recurrence: hit.recurrence })
     } else {
@@ -119,14 +142,19 @@ function stats() {
   const recurred = promoted.filter((r) => r.verified && r.verified.result === 'recurred')
   const budget = Number(str(flag.budget) || 25)
   const byArea = count((r) => r.area)
+  // Budget applies to work still in play; counting closed entries would force a prune
+  // of things that already proved out.
+  const openByArea = rows
+    .filter((r) => r.status !== 'resolved' && r.status !== 'wont_fix')
+    .reduce((a, r) => { a[r.area] = (a[r.area] || 0) + 1; return a }, {})
   return {
     active: rows.length, archived: archived.length,
-    by_status: count((r) => r.status), by_area: byArea,
+    by_status: count((r) => r.status), by_area: byArea, open_by_area: openByArea,
     promoted: promoted.length,
     recurrence_after_promotion_pct: promoted.length ? Math.round((recurred.length / promoted.length) * 100) : null,
     awaiting_verification: rows.filter((r) => r.status === 'watching').length,
     watchlist: rows.filter((r) => r.status === 'watching').map((r) => ({ id: r.id, watch: r.watch, target: r.promoted_to })),
-    over_budget: Object.entries(byArea).filter(([, n]) => n > budget).map(([a, n]) => a + ':' + n),
+    over_budget: Object.entries(openByArea).filter(([, n]) => n > budget).map(([a, n]) => a + ':' + n),
     top_recurring: rows.slice().sort((a, b) => (b.recurrence || 1) - (a.recurrence || 1)).slice(0, 5)
       .map((r) => ({ id: r.id, key: r.pattern_key || r.summary, recurrence: r.recurrence, status: r.status }))
   }
@@ -170,6 +198,53 @@ function rollup(cutoffDays) {
 // rule cannot enter the watch phase without evidence and a way to be verified.
 const isEligible = (r) => (r.recurrence || 1) >= 3 || (r.category === 'correction' && (r.recurrence || 1) >= 2)
 
+// A vague pattern_key is the one defect that silently corrupts everything downstream
+// (dedupe, recurrence, promotion), so it is worth surfacing on demand.
+const VAGUE_KEY = /^(fix|bug|issue|problem|error|thing|stuff|misc|tmp|test|other|问题|修复|错误)$/i
+
+function doctor() {
+  const rows = readJsonl(ledgerPath)
+  const archived = readJsonl(archivePath)
+  const issues = []
+  const push = (id, problem) => issues.push({ id: id || '(no id)', problem })
+  const byKey = new Map()
+  for (const r of rows) {
+    if (!r.id) push(r.id, 'missing id')
+    if (!ALLOWED_STATUS.includes(r.status)) push(r.id, 'invalid status: ' + r.status)
+    if (!r.summary) push(r.id, 'missing summary')
+    if (!r.pattern_key) push(r.id, 'missing pattern_key (identity falls back to summary)')
+    else if (VAGUE_KEY.test(String(r.pattern_key).trim())) push(r.id, 'pattern_key too vague to be an identity: ' + r.pattern_key)
+    if ((r.status === 'watching' || r.promoted_to) && !r.watch) push(r.id, 'promoted/watching without a watch predicate')
+    if (r.verified && !ALLOWED_RESULT.includes(r.verified.result)) push(r.id, 'invalid verified.result: ' + r.verified.result)
+    if (!r.tasks || r.tasks.length === 0) push(r.id, 'no task recorded (promotion needs >= 2 distinct tasks)')
+    const k = identityKey(r)
+    if (byKey.has(k)) push(r.id, 'identity collides with ' + byKey.get(k) + ' - merge them')
+    else byKey.set(k, r.id)
+  }
+  return { active: rows.length, archived: archived.length, ok: issues.length === 0, issues }
+}
+
+// Two entries can end up describing one problem (a renamed pattern_key, or a key that
+// used to normalize to ''). Merging folds the evidence together instead of deleting it.
+function merge(keepId, dropId) {
+  const rows = readJsonl(ledgerPath)
+  const keep = rows.find((r) => r.id === keepId)
+  const drop = rows.find((r) => r.id === dropId)
+  if (!keep) return { error: 'no such id: ' + keepId }
+  if (!drop) return { error: 'no such id: ' + dropId }
+  if (keep.id === drop.id) return { error: 'cannot merge an entry into itself' }
+  keep.recurrence = (keep.recurrence || 1) + (drop.recurrence || 1)
+  keep.tasks = [...new Set([...(keep.tasks || []), ...(drop.tasks || [])])]
+  keep.files = [...new Set([...(keep.files || []), ...(drop.files || [])])]
+  if (drop.details && !keep.details) keep.details = drop.details
+  keep.last_seen = [keep.last_seen, drop.last_seen].filter(Boolean).sort().pop() || keep.last_seen
+  drop.status = 'wont_fix'
+  drop.merged_into = keep.id
+  drop.merged_at = now()
+  writeJsonl(rows, ledgerPath)
+  return { kept: keep.id, dropped: drop.id, recurrence: keep.recurrence, tasks: keep.tasks.length }
+}
+
 const commands = {
   ingest, stats, digest,
   rollup: () => rollup(Number(str(flag.days) || 30)),
@@ -206,14 +281,19 @@ const commands = {
     })
   },
   list: () => readJsonl(ledgerPath).filter((r) =>
-    (!flag.status || r.status === flag.status) && (!flag.area || r.area === flag.area) && (!flag.kind || r.kind === flag.kind))
+    (!flag.status || r.status === flag.status) && (!flag.area || r.area === flag.area) && (!flag.kind || r.kind === flag.kind)),
+  doctor,
+  merge: () => merge(pos[0], pos[1])
 }
 
 if (!commands[cmd]) {
-  process.stdout.write('usage: ledger.mjs <ingest|list|stats|digest|rollup|status|promote|verify> [args]\n')
+  process.stdout.write('usage: ledger.mjs <ingest|list|stats|digest|rollup|status|promote|verify|merge|doctor> [args]\n')
   process.exit(cmd === 'help' ? 0 : 1)
 }
-const result = commands[cmd]()
+// Only mutations take the lock; reads are harmless alongside a writer.
+const WRITES = new Set(['ingest', 'rollup', 'status', 'promote', 'verify', 'merge'])
+const result = WRITES.has(cmd) ? withLock(() => commands[cmd]()) : commands[cmd]()
 emit(result)
 // A refused operation must not exit 0, or a caller that checks the exit code sees success.
-if (result && result.error) process.exit(1)
+// A dirty `doctor` result is also a failure, so CI can gate on it.
+if (result && (result.error || (cmd === 'doctor' && result.ok === false))) process.exit(1)

@@ -1,8 +1,8 @@
 # Ledger contract
 
-The ledger is the machine source of truth for the whole series. Every command in
-`promoting-learnings` and `verifying-learnings` operates on it through
-`scripts/ledger.mjs`. Hand-editing the JSONL is never required and usually wrong.
+The ledger is the machine source of truth for the loop. Every command in the
+Promote and Verify phases operates on it through `scripts/ledger.mjs`. Hand-editing
+the JSONL is never required and usually wrong.
 
 ## Files
 
@@ -35,8 +35,9 @@ The ledger is the machine source of truth for the whole series. Every command in
   "files": ["path/to/file"],
   "promoted_to": null,           // "CLAUDE.md#build" once promoted
   "watch": null,                 // observable predicate, e.g. "npm install in a diff"
-  "verified": null,             // { at, result: held|recurred, note }
-  "forced_promotion": null      // { at, reason } when promoted below threshold via --force
+  "verified": null,              // { at, result: held|recurred, note }
+  "forced_promotion": null,      // { at, reason } when promoted below threshold via --force
+  "merged_into": null            // id of the surviving entry when merged via `merge`
 }
 ```
 
@@ -63,6 +64,8 @@ is deleted.
 | `promote <id> --watch W [--target T] [--force --reason R]` | Set `watching`, attach predicate; refuses below threshold or without `--watch` |
 | `verify <id> --result <held\|recurred> [--note N]` | Record verdict; `recurred` → `ineffective` (idempotent — re-recording does not inflate recurrence) |
 | `status <id> <status>` | Set status; unknown values are rejected, common spellings normalized |
+| `merge <keep-id> <drop-id>` | Fold a duplicate into the surviving entry; the dropped one is marked `wont_fix` with `merged_into` |
+| `doctor` | Check ledger integrity: duplicate ids, invalid statuses, missing fields, promoted rules without a predicate |
 | `rollup [--days N]` | Archive closed, idle entries (default 30 days) |
 
 All commands take `--root <path>` to operate on a project other than the cwd. A refused
@@ -74,3 +77,12 @@ operation prints `{"error": ...}` **and exits non-zero** — check the exit code
 |---|---|
 | 0 | Success, or `help` |
 | 1 | Unknown command, or an operation that was refused (bad id, invalid status, below promotion threshold, missing `--watch`) |
+| 1 | `doctor` also exits 1 when it finds integrity problems, so CI can gate on it |
+
+## Safe for concurrent runs
+
+Every write (`ingest`, `status`, `promote`, `verify`, `merge`, `rollup`) takes an
+exclusive lock at `.learnings/ledger.lock` and fails with a non-zero exit if another
+process holds it. A lock older than 10 seconds is treated as abandoned and reclaimed.
+Without this, two overlapping runs would each read the ledger, apply their own change,
+and the second write would silently discard the first.

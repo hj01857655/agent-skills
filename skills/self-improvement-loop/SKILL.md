@@ -163,13 +163,25 @@ Do not simply re-promote the same wording. If the words were enough, it would ha
 ### Ledger hygiene
 
 ```bash
+node .learnings/ledger.mjs doctor          # integrity check; exits 1 when dirty
 node .learnings/ledger.mjs stats
 node .learnings/ledger.mjs rollup --days 30
 ```
 
-- **Budget:** keep active entries per area under ~25. `stats` reports `over_budget` areas. Over budget means promote or prune — not "add more".
+- **Doctor:** run before a review. It catches the defects that corrupt everything downstream — duplicate identities, a `pattern_key` too vague to be an identity (`fix`, `bug`, 问题), a promoted rule with no predicate, an invalid status, entries with no task recorded. Fix what it reports (see `merge` below), then re-run.
+- **Budget:** keep entries still in play under ~25 per area; `stats` reports `over_budget` on the open entries only, so closing or resolving entries is what relieves pressure.
 - **Rollup:** archives resolved/`wont_fix` entries idle 30 days into `archive.jsonl`. Still searchable, out of the way.
 - **Never delete.** Archiving preserves history; deletion loses the evidence that a rule mattered.
+
+### When two entries describe one problem
+
+A renamed `pattern_key`, or a key that used to normalize to nothing, leaves two rows for one problem — which splits the recurrence count and hides the evidence. Fold them instead of deleting either:
+
+```bash
+node .learnings/ledger.mjs merge lrn-keepme lrn-dropme
+```
+
+The surviving entry absorbs the other's recurrence, tasks, and files; the dropped one becomes `wont_fix` with `merged_into` pointing at the survivor. Evidence is preserved, the double-count is gone.
 
 ### System health
 
@@ -200,3 +212,5 @@ This is **self-evaluation**: the loop measures whether its own rules changed beh
 | Never checking promoted rules | Check `watching` entries every review — that is the point. |
 | Re-promoting the same wording after a failure | Rewrite or automate it — words that failed will fail again. |
 | Deleting stale entries | `rollup` archives; deletion destroys evidence. |
+| Two rows for one problem | `merge` folds them — do not delete either, that discards recurrence evidence. |
+| Never running `doctor` | It is what catches vague keys and duplicate identities before they corrupt the counts. |
