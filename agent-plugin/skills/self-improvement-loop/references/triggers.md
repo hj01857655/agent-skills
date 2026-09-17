@@ -96,11 +96,24 @@ is the event that knows: it carries `error_message` and `error_type`.
 
 `detect-error.mjs` stays silent for failures nobody needs recorded (a typo's `command
 not found`), stays silent when the same failure just fired again within ten minutes, and
-prints a short reminder otherwise. It never exits non-zero.
+otherwise returns the reminder. It never exits non-zero.
 
-**Do not** attach it to `PostToolUse`: that event fires only after a tool **succeeded**,
-so it can never see a failure. Nor should it read a tool-output environment variable —
-that channel is deprecated; hook payloads arrive as JSON on **stdin**.
+**The output format is not cosmetic.** For `PostToolUse`-type events Claude Code does
+**not** add plain stdout to context — it writes it to the debug log. The reminder only
+reaches the model as JSON:
+
+```json
+{"hookSpecificOutput":{"hookEventName":"PostToolUseFailure","additionalContext":"..."}}
+```
+
+`detect-error.mjs` emits exactly that. `hook.mjs` prints plain text, because
+`SessionStart` is one of the four events that *does* accept plain stdout as context.
+Getting this wrong is a silent no-op: the hook runs, matches, and nothing arrives.
+
+**Do not** attach the detector to `PostToolUse`: that event fires only after a tool
+**succeeded**, so it can never see a failure. Nor should it read a tool-output
+environment variable — that channel is deprecated; hook payloads arrive as JSON on
+**stdin**.
 
 ### Codex CLI
 
@@ -163,7 +176,8 @@ node .learnings/ledger.mjs brief
 # Simulate the hook's stdin payload
 CLAUDE_PROJECT_DIR="$PWD" node .learnings/hook.mjs < /dev/null
 
-# Simulate a real tool failure -> should print a reminder (and 0 on repeat)
+# Simulate a real tool failure -> JSON with hookSpecificOutput.additionalContext
+# (run twice: the second time is silent, because the failure was just reported)
 echo '{"hook_event_name":"PostToolUseFailure","tool_name":"Bash","error_message":"Exit code 1\nAssertionError: expected 2 to equal 3"}' \
   | CLAUDE_PROJECT_DIR="$PWD" node .learnings/detect-error.mjs
 ```

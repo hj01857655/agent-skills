@@ -20,8 +20,21 @@ const statePath = join(dir, '.hook-state.json')
 // Nothing to remind about if the loop was never set up in this project.
 if (!existsSync(ledger)) process.exit(0)
 
-// Exit codes alone are never worth a reminder; a specific failure is. Each pattern is
-// matched against the whole error text.
+// Output channel matters as much as detection. For PostToolUse-type events Claude Code
+// does NOT add plain stdout to context - it writes it to the debug log. The reminder only
+// reaches the model as JSON `hookSpecificOutput.additionalContext`. Emitting plain text
+// here was a silent no-op: the hook ran, matched, and nothing arrived. (UserPromptSubmit
+// and SessionStart are the events that DO accept plain stdout, which is why hook.mjs can
+// print text.)
+const reminderFor = (tool, detail) => [
+  '[learnings] a tool call failed in a way that may be worth recording:',
+  '  ' + tool + ': ' + truncate(detail, 200),
+  '  Apply the write gate (non-obvious? expensive? generalizable? actionable? not already known?).',
+  '  If it passes: node .learnings/ledger.mjs ingest, after queueing a finding in .learnings/inbox/.'
+].join('\n')
+const contextPayload = (event, text) => JSON.stringify({
+  hookSpecificOutput: { hookEventName: event || 'PostToolUseFailure', additionalContext: text }
+})
 const EXPECTED = [
   /\bcommand not found\b/i,
   /\bno such file or directory\b/i,
@@ -72,12 +85,7 @@ function run(raw) {
     seen[key] = now
     writeState(prune(seen, now))
 
-    process.stdout.write(
-      '[learnings] a tool call failed in a way that may be worth recording:\n' +
-      '  ' + tool + ': ' + truncate(detail, 200) + '\n' +
-      '  Apply the write gate (non-obvious? expensive? generalizable? actionable? not already known?).\n' +
-      '  If it passes: node .learnings/ledger.mjs ingest, after queueing a finding in .learnings/inbox/.\n'
-    )
+    process.stdout.write(contextPayload(payload.hook_event_name, reminderFor(tool, detail)) + '\n')
   } catch { /* never break the session over a reminder */ }
   process.exit(0)
 }

@@ -164,11 +164,34 @@ Full schema and lifecycle: [`references/ledger-contract.md`](skills/self-improve
 ## Provenance
 
 Built as a direct response to [`pskoett/pskoett-ai-skills`](https://github.com/pskoett/pskoett-ai-skills)
-(`@clawhub_pskoett/self-improving-agent` v3.0.24), whose capture-only design left three gaps
-this closes: no deterministic identity (hand-written `LRN-YYYYMMDD-XXX` IDs collide),
-no promotion gate bound to the ledger, and no verification that a promoted rule held.
+(`self-improvement` + `self-healing`), which is a far broader suite — 19 skills covering
+planning, verification, recovery, and CI — and this repo covers one loop depth-first
+rather than many shallowly.
 
-Its suite remains broader in scope — 19 skills covering planning, context monitoring,
-recovery, and CI — and this repo covers one loop depth-first rather than many shallowly.
+Having read its 424-line skill end to end, the honest differences are narrower than a
+first pass suggests, and it deserves credit for several things it does well:
+
+- It **does** define a promotion threshold (`Recurrence-Count >= 3`, within a 30-day
+  window, across 2 distinct tasks) and reuses that one rule across its aggregator skills.
+- Its `error-detector.sh` sends the reminder exactly the way Claude Code requires — as
+  JSON `hookSpecificOutput.additionalContext` on stdin — which the 3.0.24 release on
+  skillhub does **not** (that build reads the deprecated `CLAUDE_TOOL_OUTPUT` env var).
+- Its `self-healing` skill owns a discipline this one lacks: **verify before persist**,
+  with a mandatory re-run and an honest `pending-verify`/`abandoned` status.
+
+What is genuinely different here:
+
+- **A machine-readable ledger.** Their entries are markdown files read by grep; identity,
+  recurrence, and promotion live in prose. Here they are columns.
+- **Identity you cannot get wrong.** Their `LRN-YYYYMMDD-XXX` ID is hand-assigned and its
+  recurrence depends on the writer noticing a similar entry; ours is a hash of the
+  normalized `pattern_key`.
+- **Promotion that writes and verifies.** They instruct the agent to add the rule to
+  `CLAUDE.md` by hand and update the entry's status. Nothing afterwards confirms the rule
+  is still in the file. Ours writes it behind a marker and `check` fails the build when it
+  has been deleted.
+- **Enforcement as an exit code.** Their loop ends at "promoted"; whether it held is a
+  judgement made from memory.
+
 What is borrowed deliberately is the packaging lesson: a portable manifest plus an
 `install.mjs` that covers 21 platforms beats hand-copying into each agent's directory.

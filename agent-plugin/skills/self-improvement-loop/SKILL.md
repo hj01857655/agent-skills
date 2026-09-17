@@ -220,7 +220,7 @@ The surviving entry absorbs the other's recurrence, tasks, and files; the droppe
 
 ### Let the failures find you
 
-Detection is the other half of triggering: capture only happens if the agent notices something broke. `scripts/hook.mjs` surfaces rules awaiting attention at session start; `scripts/detect-error.mjs` fires on `PostToolUseFailure` and prints a reminder only for failures worth recording — staying silent for expected ones (a typo's `command not found`) and for a repeat of the same failure within ten minutes. Wiring for both: `references/triggers.md`.
+Detection is the other half of triggering: capture only happens if the agent notices something broke. `scripts/hook.mjs` surfaces rules awaiting attention at session start; `scripts/detect-error.mjs` fires on `PostToolUseFailure` and returns a reminder as JSON `hookSpecificOutput.additionalContext` — only for failures worth recording, staying silent for expected ones (a typo's `command not found`) and for a repeat of the same failure within ten minutes. Wiring for both: `references/triggers.md`.
 
 ## Enforce: make the rule fail on its own
 
