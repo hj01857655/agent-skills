@@ -1,0 +1,23 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  naming:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The docs-only alias must not leak into code or paths; the identifier is
+      # self-improvement-loop. See README "Naming rule".
+      - name: Naming rule
+        run: node scripts/check-naming.mjs
+
+      # The portable bundle is a copy of skills/, so it drifts silently unless checked.
+      - name: Portable bundle is in sync
+        run: node scripts/sync-plugin.mjs --check

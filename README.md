@@ -11,6 +11,20 @@ written to the Agent Skills format so any compatible client can load it.
 
 Shipped today: **self-improvement-loop** (alias: `ratchet`) — one loop done properly, rather than many done shallowly.
 
+### Naming rule
+
+`ratchet` is an **alias for humans**. It may appear in Markdown and nowhere else. Every
+identifier the machine uses — the skill directory, the `name:` field, the installer's
+`skillName`, the marker written into your files — is `self-improvement-loop`.
+
+```bash
+node scripts/check-naming.mjs   # exits 1 if the alias leaks into code or a path
+```
+
+The check is part of the repo, not a convention: a rename that slips the alias into a
+script fails it. `scripts/check-naming.mjs` is the single file allowed to spell the alias
+outside Markdown, since it has to define what it is looking for.
+
 ## self-improvement-loop (alias: `ratchet`)
 
 > A ratchet only turns one way. So does this:
