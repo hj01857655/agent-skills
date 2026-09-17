@@ -9,9 +9,9 @@
 A collection of agent skills. Each skill is a self-contained folder under `skills/`,
 written to the Agent Skills format so any compatible client can load it.
 
-Shipped today: **self-improvement-loop** (`self-improvement-loop`) — one loop done properly, rather than many done shallowly.
+Shipped today: **self-improvement-loop** (alias: `ratchet`) — one loop done properly, rather than many done shallowly.
 
-## self-improvement-loop (alias: `self-improvement-loop`)
+## self-improvement-loop (alias: `ratchet`)
 
 > A self-improvement-loop only turns one way. So does this:
 > **capture evidence → promote what repeats → prove the rule still holds.**
