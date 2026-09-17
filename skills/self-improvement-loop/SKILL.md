@@ -17,6 +17,16 @@ Three phases, one ledger. Run only the phase the moment calls for.
 | **Promote** | A task boundary; an entry crossed the threshold | A durable rule in the project's native memory |
 | **Verify** | A periodic review; a mistake feels familiar | A verdict on each watching rule; a pruned ledger |
 
+## Start here
+
+The whole loop depends on someone remembering to run it, so make it self-triggering:
+
+```bash
+node .learnings/ledger.mjs brief
+```
+
+It prints rules awaiting verification, ineffective rules to rewrite, and entries ready to promote — or **nothing** when there is nothing to say. Wire it to run automatically per platform: see `references/triggers.md` (a Claude Code `SessionStart` hook, or one line in `AGENTS.md` / `CLAUDE.md`). Until it is wired, run `brief` yourself at the start of a task.
+
 ## Capture: the write gate
 
 Most sessions produce noise. Logging every non-zero exit code buries the signal. Before writing anything, answer all five. **Any "no" means do not log.**
@@ -57,6 +67,7 @@ Records live in `.learnings/ledger.jsonl` — one JSON object per line, the mach
 ```bash
 mkdir -p .learnings
 cp "<skill-dir>/scripts/ledger.mjs" .learnings/ledger.mjs
+cp "<skill-dir>/scripts/hook.mjs" .learnings/hook.mjs   # only if you wire a hook
 ```
 
 The script derives each entry's ID from a hash of its normalized `pattern_key`, so the same problem always lands on the same ID and repeats bump a counter instead of creating twins. **Never hand-write an ID or append to the ledger by hand.**
@@ -114,7 +125,7 @@ node .learnings/ledger.mjs list --status open
 
 ### The watch predicate — this is the point
 
-A rule that is never checked is a wish. Every promotion carries a one-line, observable predicate describing what the *return* of the mistake looks like — the script rejects a promotion without one.
+A rule that is never checked is a wish. Every promotion carries a one-line, observable predicate describing what the *return* of the mistake looks like — the script rejects a promotion without one, and without a `--target` (a rule placed nowhere is not promoted, just open).
 
 ```bash
 node .learnings/ledger.mjs promote lrn-ab12cd34 \
@@ -135,6 +146,16 @@ If you cannot write an observable predicate, you cannot check the rule later —
 ### Do not promote
 
 One-off fixes and already-resolved incidents. Anything you would not want a new contributor told on day one. Restatements of language or framework defaults. Entries whose `pattern_key` is vague — fix the key first.
+
+### When a rule keeps proving right — extract it
+
+A rule that has held across several verifications is no longer project trivia; it is a reusable technique. Turn it into a skill skeleton:
+
+```bash
+node .learnings/ledger.mjs extract lrn-ab12cd34
+```
+
+It writes `skills/<pattern_key>/SKILL.md` with the frontmatter, the rule, its rationale, and the evidence line, plus `TODO` sections to fill. The entry is marked `extracted_to` and closed. **The skeleton is a starting point, not a skill** — fill the sections and test the result before relying on it.
 
 ## Verify: does the rule actually work?
 
@@ -183,6 +204,10 @@ node .learnings/ledger.mjs merge lrn-keepme lrn-dropme
 
 The surviving entry absorbs the other's recurrence, tasks, and files; the dropped one becomes `wont_fix` with `merged_into` pointing at the survivor. Evidence is preserved, the double-count is gone.
 
+### Let the failures find you
+
+Detection is the other half of triggering: capture only happens if the agent notices something broke. `scripts/hook.mjs` surfaces rules awaiting attention at session start; `scripts/detect-error.mjs` fires on `PostToolUseFailure` and prints a reminder only for failures worth recording — staying silent for expected ones (a typo's `command not found`) and for a repeat of the same failure within ten minutes. Wiring for both: `references/triggers.md`.
+
 ### System health
 
 `stats` reports the metrics that say whether this loop is working:
@@ -208,9 +233,12 @@ This is **self-evaluation**: the loop measures whether its own rules changed beh
 | Promoting on first occurrence | Wait for `recurrence >= 3` (or a twice-made correction). |
 | Copying the whole incident into memory | Distill to one imperative rule. |
 | Skipping `--watch` | The script rejects the promotion — a rule with no predicate can never be verified. |
+| Promoting without `--target` | Rejected too: a rule that lives nowhere is just an open entry, and `stats` would disagree with the status. |
 | Writing the rule to two homes | One rule, one home. |
 | Never checking promoted rules | Check `watching` entries every review — that is the point. |
 | Re-promoting the same wording after a failure | Rewrite or automate it — words that failed will fail again. |
 | Deleting stale entries | `rollup` archives; deletion destroys evidence. |
 | Two rows for one problem | `merge` folds them — do not delete either, that discards recurrence evidence. |
 | Never running `doctor` | It is what catches vague keys and duplicate identities before they corrupt the counts. |
+| Leaving the reminder unwired | Run `brief` at task start, or wire it per `references/triggers.md` — an unwired loop only fires when someone remembers. |
+| A rule that keeps holding but never becomes a skill | `extract` it; rules that generalize belong in a skill, not an ever-growing ledger. |

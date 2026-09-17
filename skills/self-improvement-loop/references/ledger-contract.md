@@ -12,6 +12,10 @@ the JSONL is never required and usually wrong.
 | `.learnings/archive.jsonl` | Rolled-up entries (still searchable) |
 | `.learnings/inbox/*.json` | Staging area; `ingest` consumes and deletes these |
 | `.learnings/DIGEST.md` | Regenerated human view — never hand-edit |
+| `.learnings/hook.mjs` | Optional; vendored trigger adapter for platforms with hooks |
+| `.learnings/detect-error.mjs` | Optional; vendored failure detector for `PostToolUseFailure` |
+| `.learnings/.hook-state.json` | Failure-dedupe state for `detect-error.mjs`; safe to delete |
+| `.learnings/ledger.lock` | Transient write lock; absent when idle |
 
 ## Entry schema
 
@@ -37,7 +41,8 @@ the JSONL is never required and usually wrong.
   "watch": null,                 // observable predicate, e.g. "npm install in a diff"
   "verified": null,              // { at, result: held|recurred, note }
   "forced_promotion": null,      // { at, reason } when promoted below threshold via --force
-  "merged_into": null            // id of the surviving entry when merged via `merge`
+  "merged_into": null,           // id of the surviving entry when merged via `merge`
+  "extracted_to": null           // SKILL.md path once extracted via `extract`
 }
 ```
 
@@ -61,11 +66,13 @@ is deleted.
 | `list [--status X] [--area Y] [--kind Z]` | Filter active entries |
 | `stats [--budget N]` | Counts, budget overruns, recurrence-after-promotion % |
 | `digest` | Regenerate `DIGEST.md` |
-| `promote <id> --watch W [--target T] [--force --reason R]` | Set `watching`, attach predicate; refuses below threshold or without `--watch` |
+| `promote <id> --watch W --target T [--force --reason R]` | Start watching a rule; refuses below threshold, without `--watch`, or without `--target` |
 | `verify <id> --result <held\|recurred> [--note N]` | Record verdict; `recurred` → `ineffective` (idempotent — re-recording does not inflate recurrence) |
 | `status <id> <status>` | Set status; unknown values are rejected, common spellings normalized |
 | `merge <keep-id> <drop-id>` | Fold a duplicate into the surviving entry; the dropped one is marked `wont_fix` with `merged_into` |
-| `doctor` | Check ledger integrity: duplicate ids, invalid statuses, missing fields, promoted rules without a predicate |
+| `extract <id> [--dir D] [--force]` | Generate a new skill skeleton from a settled rule; records `extracted_to` |
+| `doctor` | Check ledger integrity: duplicate ids, invalid statuses, missing fields, promoted rules without a predicate, rules watching over 90 days |
+| `brief [--max N]` | Plain-text reminder for context injection: watching / ineffective / promotion-ready entries; prints nothing when clean |
 | `rollup [--days N]` | Archive closed, idle entries (default 30 days) |
 
 All commands take `--root <path>` to operate on a project other than the cwd. A refused
@@ -76,7 +83,7 @@ operation prints `{"error": ...}` **and exits non-zero** — check the exit code
 | Code | Meaning |
 |---|---|
 | 0 | Success, or `help` |
-| 1 | Unknown command, or an operation that was refused (bad id, invalid status, below promotion threshold, missing `--watch`) |
+| 1 | Unknown command, or an operation that was refused (bad id, invalid status, below promotion threshold, missing `--watch` or `--target`) |
 | 1 | `doctor` also exits 1 when it finds integrity problems, so CI can gate on it |
 
 ## Safe for concurrent runs
