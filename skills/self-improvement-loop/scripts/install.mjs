@@ -59,7 +59,10 @@ const PLATFORMS = [
   ['antigravity',     'Antigravity',      join(H, '.gemini', 'antigravity', 'skills'),   join(H, '.gemini', 'antigravity'), ['.agents']],
   ['antigravity-ide', 'Antigravity IDE',  join(H, '.antigravity-ide', 'skills'),         join(H, '.antigravity-ide'), ['.agents']],
   ['opencode',        'OpenCode',         join(H, '.config', 'opencode', 'skills'),      join(H, '.config', 'opencode'), ['.claude', '.agents']],
-  ['goose',           'Goose',            join(H, '.config', 'goose', 'skills'),         join(H, '.config', 'goose'), ['.agents']],
+  // Goose's own docs list ~/.agents/skills (plus project .agents/skills) — not
+  // ~/.config/goose, which an earlier revision of this file guessed from the config
+  // directory convention.
+  ['goose',           'Goose',            join(H, '.agents', 'skills'),                  join(H, '.agents'), []],
   ['roo',             'Roo Code',         join(H, '.roo', 'skills'),                     join(H, '.roo'), ['.claude']],
   // OpenHands reads the shared `.agents` root (its legacy `.openhands/` dir is deprecated),
   // so it gates on that and dedupes against the `agents` entry below.
@@ -124,6 +127,8 @@ const PLATFORMS = [
   ['grok',            'Grok',             join(H, '.grok', 'skills'),                    join(H, '.grok'), []],
   ['zcode',           'ZCode',            join(H, '.zcode', 'skills'),                   join(H, '.zcode'), []],
   ['devin',           'Devin',            join(H, '.devin', 'skills'),                   join(H, '.devin'), []],
+  // CodeBuddy ships a Chinese and an International site, but ONE CLI and ONE data
+  // directory: the site is a login choice (`~/.codebuddy` either way, per both docs).
   ['codebuddy',       'CodeBuddy',        join(H, '.codebuddy', 'skills'),               join(H, '.codebuddy'), ['.claude']]
 ]
 

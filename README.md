@@ -79,7 +79,7 @@ so after writing there, and the `agent-plugin/` bundle below is the durable rout
 | Antigravity | `~/.gemini/antigravity/skills/` | `.agents/skills/` |
 | Antigravity IDE | `~/.antigravity-ide/skills/` | `.agents/skills/` |
 | OpenCode | `~/.config/opencode/skills/` | `.claude/skills/`, `.agents/skills/` |
-| Goose | `~/.config/goose/skills/` | `.agents/skills/` |
+| Goose | `~/.agents/skills/` | project `.agents/skills/` |
 | Roo Code | `~/.roo/skills/` | `.claude/skills/` |
 | OpenHands | `~/.agents/skills/` | `.claude/skills/` |
 | Kiro | `~/.kiro/skills/` | `.claude/skills/` |

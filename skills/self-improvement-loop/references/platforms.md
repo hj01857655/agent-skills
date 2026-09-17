@@ -34,7 +34,7 @@ many products at once.
 | Antigravity | `~/.gemini/antigravity/skills/` | `.agents/rules/` | Reads `AGENTS.md` |
 | **Antigravity IDE** | `~/.antigravity-ide/skills/` | `.agents/skills/` | |
 | OpenCode | `~/.config/opencode/skills/` | `.claude/skills/`, `.agents/skills/` | |
-| Goose | `~/.config/goose/skills/` | `.agents/skills/` | Block's agent |
+| Goose | `~/.agents/skills/` | project `.agents/skills/` | Block's agent; docs list the shared root |
 | **DeepSeek Harness (dsh)** | `~/.agents/skills/` | — | scans at startup; same SKILL.md contract |
 | **OpenClaw** | `~/.agents/skills/` | workspace `/skills` | precedence order per docs.openclaw.ai/tools/skills |
 | **Hermes Agent** | `~/.hermes/skills/` | — | Nous Research |
@@ -101,11 +101,16 @@ the installs, so each edition gets its own entry.
 | WorkBuddy (Tencent) | `~/.workbuddy` | `~/.workbuddy-ai` (workbuddy.ai) |
 | TRAE (ByteDance) | `~/.trae-cn` (trae.cn) | `~/.trae` (trae.ai) |
 | Qoder (Alibaba) | Qoder CN product line | `~/.qoder` |
-| CodeBuddy (Tencent) | Chinese Site login | International Site login |
 
 These are not renamed folders: the model sets differ (WorkBuddy domestic runs
 DeepSeek/GLM/Hunyuan, international adds Claude/GPT/Gemini), and they authenticate
 against different sites. A skill installed into one is invisible to the other.
+
+**Not every two-site product splits its directory.** CodeBuddy (CodeBuddy Code) offers a
+Chinese Site and an International Site as a *login choice*, but both installs are the same
+CLI writing to `~/.codebuddy` — per its own configuration docs for both sites. It
+therefore has one entry here, not two. Regional editions were worth checking case by case
+precisely because the answer differs per vendor.
 
 ## Corrections
 
@@ -113,6 +118,8 @@ Where an earlier revision of this file was wrong, so the mistake is not repeated
 
 | Claimed | Reality |
 |---|---|
+| Goose uses `~/.config/goose/skills/` | Goose's docs list `~/.agents/skills/` (global), `.agents/skills/` (project), and `~/.agents/plugins/<name>/`. The config-directory path was a guess. |
+| CodeBuddy needs two entries for its two sites | Chinese Site and International Site are login choices on one CLI; both use `~/.codebuddy`. |
 | OpenClaw uses `~/.openclaw/skills/` | It loads workspace `/skills`, project `.agents/skills`, and personal `~/.agents/skills`. There is no `~/.openclaw/skills` root. |
 | OpenHands uses `~/.openhands/skills/` | `.agents/skills/` is the standard path; `.openhands/` and `.openhands/microagents/` are legacy. |
 | A count derived from this machine | The roster is the official showcase; a local probe only finds what is already installed. |
