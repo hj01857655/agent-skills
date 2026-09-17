@@ -4,9 +4,16 @@
   <img src="https://img.shields.io/badge/platforms-56%20install%20roots-2ea44f" alt="56 install roots">
 </p>
 
-# ratchet
+# agent-skills
 
-> A ratchet only turns one way. So does this:
+A collection of agent skills. Each skill is a self-contained folder under `skills/`,
+written to the Agent Skills format so any compatible client can load it.
+
+Shipped today: **self-improvement-loop** (`self-improvement-loop`) — one loop done properly, rather than many done shallowly.
+
+## self-improvement-loop (alias: `self-improvement-loop`)
+
+> A self-improvement-loop only turns one way. So does this:
 > **capture evidence → promote what repeats → prove the rule still holds.**
 > A rule that regresses is caught by its own guard and sent back to be rewritten.
 > Progress accumulates; it does not silently unwind.

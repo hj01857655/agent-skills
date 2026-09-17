@@ -13,7 +13,7 @@
 //   install.mjs --uninstall  remove it from every platform that has a copy
 //   install.mjs --only claude,breezell[,cursor]   limit to named platforms
 //
-// Uninstalling by hand across 23 roots is how copies get left behind; `--uninstall` is
+// Uninstalling by hand across dozens of roots is how copies get left behind; `--uninstall` is
 // the other half of `install`.
 import { existsSync, mkdirSync, cpSync, rmSync, readdirSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'

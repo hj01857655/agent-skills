@@ -2,10 +2,11 @@
 name: self-improvement-loop
 description: Use when a non-obvious failure just happened, the user corrects the assistant ("no, that's wrong", "actually..."), an external tool or API misbehaves surprisingly, documented behavior turns out different than expected, or a clearly better approach is found. Also use at a task boundary, when the user asks what has been learned, when a mistake feels familiar, or during a periodic review.
 metadata:
+  alias: ratchet
   version: 1.0.0
 ---
 
-# Self-Improvement Loop
+# Self-Improvement Loop (alias: ratchet)
 
 A learning system that never checks itself is just a diary. This runs the full loop: capture evidence, promote what repeats, then prove the rule still holds.
 
