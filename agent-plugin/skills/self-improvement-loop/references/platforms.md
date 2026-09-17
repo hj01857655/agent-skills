@@ -39,7 +39,8 @@ many products at once.
 | Roo Code | `~/.roo/skills/` | `.claude/skills/` | VS Code extension |
 | Junie | `~/.junie/skills/` | `.claude/skills/` | JetBrains |
 | Kiro | `~/.kiro/skills/` | `.claude/skills/` | |
-| TRAE | `~/.trae/skills/` | `.claude/skills/` | |
+| TRAE | `~/.trae/skills/` | `.claude/skills/` |
+| **TRAE CN** | `~/.trae-cn/skills/` | `.claude/skills/` | trae.cn; a separate build from trae.ai | |
 | **Windsurf** | `~/.codeium/windsurf/skills/` | `.claude/skills/` | |
 | **Windsurf (alt root)** | `~/.windsurf/skills/` | `.claude/skills/` | |
 | Factory / Piebald | `~/.factory/skills/` | `.agents/skills/` | |
@@ -48,6 +49,8 @@ many products at once.
 | Mux | `~/.mux/skills/` | — | Coder |
 | Ona | `~/.ona/skills/` | `.claude/skills/` | |
 | Qodo | `~/.qodo/skills/` | — | |
+| **Qoder** | `~/.qoder/skills/` | — | Qoder international |
+| **iFlow CLI** | `~/.iflow/skills/` | — | 心流; project `.iflow/skills/` |
 | Tabnine | `~/.tabnine/skills/` | — | |
 | Mistral AI Vibe | `~/.vibe/skills/` | — | |
 | Command Code | `~/.commandcode/skills/` | — | |
@@ -62,7 +65,8 @@ many products at once.
 | Superconductor | `~/.superconductor/skills/` | — | |
 | OpenClaw (workspace) | `~/.openclaw/workspace/skills/` | — | |
 | Workshop | `~/.workshop/skills/` | — | |
-| **WorkBuddy** | `~/.workbuddy/skills/` | — | |
+| **WorkBuddy** | `~/.workbuddy/skills/` | — | domestic build |
+| **WorkBuddy (intl)** | `~/.workbuddy-ai/skills/` | — | workbuddy.ai; models differ from the domestic build |
 | **QoderWork** | `~/.qoderwork/skills/` | — | |
 | **Grok** | `~/.grok/skills/` | — | |
 | **ZCode** | `~/.zcode/skills/` | — | |
@@ -80,6 +84,23 @@ many products at once.
 **Hosted and library products have no installable root.** They consume skills through
 their own API or package manager, so `install.mjs` cannot place anything there — it lists
 them and skips. That is a real limit of file-based distribution, not an oversight.
+
+## Regional editions are separate products
+
+Several vendors ship the same brand twice — a domestic build and an international one —
+with **separate data directories**. Treating one directory per brand silently misses half
+the installs, so each edition gets its own entry.
+
+| Product | Domestic | International |
+|---|---|---|
+| WorkBuddy (Tencent) | `~/.workbuddy` | `~/.workbuddy-ai` (workbuddy.ai) |
+| TRAE (ByteDance) | `~/.trae-cn` (trae.cn) | `~/.trae` (trae.ai) |
+| Qoder (Alibaba) | Qoder CN product line | `~/.qoder` |
+| CodeBuddy (Tencent) | Chinese Site login | International Site login |
+
+These are not renamed folders: the model sets differ (WorkBuddy domestic runs
+DeepSeek/GLM/Hunyuan, international adds Claude/GPT/Gemini), and they authenticate
+against different sites. A skill installed into one is invisible to the other.
 
 ## Corrections
 

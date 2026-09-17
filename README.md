@@ -82,6 +82,7 @@ so after writing there, and the `agent-plugin/` bundle below is the durable rout
 | OpenHands | `~/.agents/skills/` | `.claude/skills/` |
 | Kiro | `~/.kiro/skills/` | `.claude/skills/` |
 | TRAE | `~/.trae/skills/` | `.claude/skills/` |
+| TRAE CN (`trae.cn`) | `~/.trae-cn/skills/` | `.claude/skills/` |
 | Amp | `~/.amp/skills/` | `.claude/skills/` |
 | Shared root | `~/.agents/skills/` | — |
 | Breezell | `~/.breezell/skills/` | — || Cline | `~/.cline/skills/` | `.claude/skills/` |
@@ -113,7 +114,10 @@ so after writing there, and the `agent-plugin/` bundle below is the durable rout
 | Superconductor | `~/.superconductor/skills/` | — |
 | OpenClaw (workspace) | `~/.openclaw/workspace/skills/` | — |
 | Workshop | `~/.workshop/skills/` | — |
-| WorkBuddy | `~/.workbuddy/skills/` | — |
+| WorkBuddy (domestic) | `~/.workbuddy/skills/` | — |
+| WorkBuddy (intl, `workbuddy.ai`) | `~/.workbuddy-ai/skills/` | — |
+| Qoder / Qoder CN | `~/.qoder/skills/` | — |
+| iFlow CLI (心流) | `~/.iflow/skills/` | — |
 | QoderWork | `~/.qoderwork/skills/` | — |
 | Grok | `~/.grok/skills/` | — |
 | ZCode | `~/.zcode/skills/` | — |
