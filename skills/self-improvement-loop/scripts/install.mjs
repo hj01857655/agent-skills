@@ -71,6 +71,18 @@ const PLATFORMS = [
   // --- shared compatibility roots: one install covers the group above ---
   ['agents',          'Shared .agents',   join(H, '.agents', 'skills'),                  join(H, '.agents'), []],
 
+  // --- regional editions ship separate data directories, confirmed against vendor docs ---
+  // WorkBuddy: Tencent ships a domestic build (`~/.workbuddy`) and an international one
+  // (workbuddy.ai → `~/.workbuddy-ai`). They are distinct products with distinct models,
+  // not one product with a renamed folder.
+  ['workbuddy-ai',    'WorkBuddy (intl)', join(H, '.workbuddy-ai', 'skills'),            join(H, '.workbuddy-ai'), []],
+  // Trae: trae.cn (domestic) → `~/.trae-cn`; trae.ai (international) → `~/.trae`.
+  ['trae-cn',         'TRAE CN',          join(H, '.trae-cn', 'skills'),                 join(H, '.trae-cn'), ['.claude']],
+  // Qoder: Qoder CN is a separate product line from Qoder international.
+  ['qoder',           'Qoder',            join(H, '.qoder', 'skills'),                   join(H, '.qoder'), []],
+  // iFlow CLI (心流): user settings live in `~/.iflow`, project in `.iflow/`.
+  ['iflow',           'iFlow CLI',        join(H, '.iflow', 'skills'),                   join(H, '.iflow'), []],
+
   // --- conventional ~/.<id>/skills layout (not individually verified) ---
   ['breezell',        'Breezell',         join(H, '.breezell', 'skills'),                join(H, '.breezell'), []],
   ['cline',           'Cline',            join(H, '.cline', 'skills'),                   join(H, '.cline'), ['.claude']],
@@ -88,6 +100,14 @@ const PLATFORMS = [
   ['vibe',            'Mistral AI Vibe',  join(H, '.vibe', 'skills'),                    join(H, '.vibe'), []],
   ['commandcode',     'Command Code',     join(H, '.commandcode', 'skills'),             join(H, '.commandcode'), []],
   ['deepcode',        'Deep Code',        join(H, '.deepcode', 'skills'),                join(H, '.deepcode'), []],
+  // OpenClaw loads, highest precedence first: workspace `/skills`, project
+  // `.agents/skills`, personal `~/.agents/skills` (docs.openclaw.ai/tools/skills). There is
+  // no `~/.openclaw/skills` root — an earlier revision of this file invented one.
+  ['openclaw',        'OpenClaw',         join(H, '.agents', 'skills'),                  join(H, '.agents'), []],
+  // DeepSeek Harness (dsh) scans `~/.agents/skills` at startup; same SKILL.md contract.
+  ['dsh',             'DeepSeek Harness', join(H, '.agents', 'skills'),                  join(H, '.agents'), []],
+  // VT Code reads `.agents/skills` and Claude-compatible paths.
+  ['vtcode',          'VT Code',          join(H, '.agents', 'skills'),                  join(H, '.agents'), ['.claude']],
   ['hermes',          'Hermes Agent',     join(H, '.hermes', 'skills'),                  join(H, '.hermes'), []],
   ['autohand',        'Autohand Code CLI', join(H, '.autohand', 'skills'),               join(H, '.autohand'), []],
   ['zeroclaw',        'ZeroClaw',         join(H, '.zeroclaw', 'skills'),                join(H, '.zeroclaw'), []],
@@ -96,8 +116,8 @@ const PLATFORMS = [
   ['bub',             'bub',              join(H, '.bub', 'skills'),                     join(H, '.bub'), []],
   ['pi',              'pi',               join(H, '.pi', 'skills'),                      join(H, '.pi'), []],
   ['nanobot',         'nanobot',          join(H, '.nanobot', 'skills'),                 join(H, '.nanobot'), []],
-  ['openclaw',        'OpenClaw',         join(H, '.openclaw', 'skills'),                join(H, '.openclaw'), []],
   ['superconductor',  'Superconductor',   join(H, '.superconductor', 'skills'),          join(H, '.superconductor'), []],
+  ['openclaw-ws',     'OpenClaw (workspace)', join(H, '.openclaw', 'workspace', 'skills'), join(H, '.openclaw'), []],
   ['workshop',        'Workshop',         join(H, '.workshop', 'skills'),                join(H, '.workshop'), []],
   ['workbuddy',       'WorkBuddy',        join(H, '.workbuddy', 'skills'),               join(H, '.workbuddy'), []],
   ['qoderwork',       'QoderWork',        join(H, '.qoderwork', 'skills'),               join(H, '.qoderwork'), []],

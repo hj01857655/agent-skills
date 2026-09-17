@@ -15,23 +15,34 @@ many products at once.
 
 | Platform | Native root | Also reads | Notes |
 |---|---|---|---|
-| Claude Code | `~/.claude/skills/` | — | Rung 1 hooks; see `triggers.md` |
+| Claude Code | `~/.claude/skills/` | `.agents/skills/` | Rung 1 hooks; see `triggers.md` |
 | Claude (app) | upload per-session | — | No filesystem root; add via the skills UI |
 | ChatGPT & Codex | `~/.codex/skills/` | `.agents/skills/` | Hooks in `config.toml` |
 | VS Code | `.github/skills/` (project) | `.claude/skills/` | Copilot-backed |
 | GitHub Copilot | `~/.copilot/skills/` | `.claude/skills/`, `.agents/skills/` | |
+| **Shared root** | `~/.agents/skills/` | — | read by the whole compatibility group |
+| **Breezell** | `~/.breezell/skills/` | — | |
+| **Cline** | `~/.cline/skills/` | `.claude/skills/` | |
+| **Continue** | `~/.continue/skills/` | `.claude/skills/` | |
 | Cursor | `~/.cursor/skills/` | `.claude/skills/`, `.agents/skills/` | Rules live in `.cursor/rules/*.mdc` |
 | Gemini CLI | `~/.gemini/skills/` | — | Entry file `GEMINI.md` |
 | Antigravity | `~/.gemini/antigravity/skills/` | `.agents/rules/` | Reads `AGENTS.md` |
+| **Antigravity IDE** | `~/.antigravity-ide/skills/` | `.agents/skills/` | |
 | OpenCode | `~/.config/opencode/skills/` | `.claude/skills/`, `.agents/skills/` | |
-| Goose | `~/.config/goose/skills/` | — | Block's agent |
-| Amp | `~/.config/amp/skills/` | `.claude/skills/` | |
-| OpenHands | `~/.openhands/skills/` | `.claude/skills/` | |
+| Goose | `~/.config/goose/skills/` | `.agents/skills/` | Block's agent |
+| **DeepSeek Harness (dsh)** | `~/.agents/skills/` | — | scans at startup; same SKILL.md contract |
+| **OpenClaw** | `~/.agents/skills/` | workspace `/skills` | precedence order per docs.openclaw.ai/tools/skills |
+| **Hermes Agent** | `~/.hermes/skills/` | — | Nous Research |
+| **VT Code** | `~/.agents/skills/` | `.claude/skills/` | |
+| Amp | `~/.amp/skills/` | `.claude/skills/` | |
+| OpenHands | `~/.agents/skills/` | `.claude/skills/` | `.openhands/` is legacy |
 | Roo Code | `~/.roo/skills/` | `.claude/skills/` | VS Code extension |
 | Junie | `~/.junie/skills/` | `.claude/skills/` | JetBrains |
 | Kiro | `~/.kiro/skills/` | `.claude/skills/` | |
 | TRAE | `~/.trae/skills/` | `.claude/skills/` | |
-| Factory / Piebald | `~/.factory/skills/` | — | |
+| **Windsurf** | `~/.codeium/windsurf/skills/` | `.claude/skills/` | |
+| **Windsurf (alt root)** | `~/.windsurf/skills/` | `.claude/skills/` | |
+| Factory / Piebald | `~/.factory/skills/` | `.agents/skills/` | |
 | Letta | `~/.letta/skills/` | — | |
 | Firebender | `~/.firebender/skills/` | `.claude/skills/` | |
 | Mux | `~/.mux/skills/` | — | Coder |
@@ -41,7 +52,6 @@ many products at once.
 | Mistral AI Vibe | `~/.vibe/skills/` | — | |
 | Command Code | `~/.commandcode/skills/` | — | |
 | Deep Code | `~/.deepcode/skills/` | — | |
-| Hermes Agent | `~/.hermes/skills/` | — | |
 | Autohand Code CLI | `~/.autohand/skills/` | — | |
 | ZeroClaw | `~/.zeroclaw/skills/` | — | |
 | Vita | `~/.vita/skills/` | — | |
@@ -49,9 +59,15 @@ many products at once.
 | bub | `~/.bub/skills/` | — | |
 | pi | `~/.pi/skills/` | — | `pi-mono` |
 | nanobot | `~/.nanobot/skills/` | — | |
-| OpenClaw | `~/.openclaw/skills/` | — | has its own hook system |
 | Superconductor | `~/.superconductor/skills/` | — | |
+| OpenClaw (workspace) | `~/.openclaw/workspace/skills/` | — | |
 | Workshop | `~/.workshop/skills/` | — | |
+| **WorkBuddy** | `~/.workbuddy/skills/` | — | |
+| **QoderWork** | `~/.qoderwork/skills/` | — | |
+| **Grok** | `~/.grok/skills/` | — | |
+| **ZCode** | `~/.zcode/skills/` | — | |
+| **Devin** | `~/.devin/skills/` | — | |
+| **CodeBuddy** | `~/.codebuddy/skills/` | `.claude/skills/` | |
 | Agentman | hosted | — | no local root |
 | Databricks Genie Code | hosted | — | no local root |
 | Snowflake Cortex Code | hosted | — | no local root |
@@ -64,6 +80,18 @@ many products at once.
 **Hosted and library products have no installable root.** They consume skills through
 their own API or package manager, so `install.mjs` cannot place anything there — it lists
 them and skips. That is a real limit of file-based distribution, not an oversight.
+
+## Corrections
+
+Where an earlier revision of this file was wrong, so the mistake is not repeated:
+
+| Claimed | Reality |
+|---|---|
+| OpenClaw uses `~/.openclaw/skills/` | It loads workspace `/skills`, project `.agents/skills`, and personal `~/.agents/skills`. There is no `~/.openclaw/skills` root. |
+| OpenHands uses `~/.openhands/skills/` | `.agents/skills/` is the standard path; `.openhands/` and `.openhands/microagents/` are legacy. |
+| A count derived from this machine | The roster is the official showcase; a local probe only finds what is already installed. |
+| `.cursorrules` for Cursor | Deprecated and ignored by Agent mode; use `.cursor/rules/*.mdc`. |
+| Codex configures hooks in `settings.json` | Hooks live in `config.toml` (`[[hooks.<Event>]]`). |
 
 ## How the installer picks a root
 

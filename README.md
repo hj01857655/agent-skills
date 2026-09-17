@@ -58,18 +58,73 @@ The roster follows the **official Agent Skills showcase (46 products)** at
 locally finds only what you already have and silently understates the count. Full matrix,
 including which products share the compatibility roots: [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
-Eleven of the 46 have **no installable filesystem root** (ChatGPT and Claude apps,
-Databricks Genie Code, Snowflake Cortex Code, Pulumi Neo, Agentman, Spring AI,
-fast-agent, Laravel Boost, Google AI Edge Gallery, on-device). They consume skills
-through their own API or package manager; `--list` names them instead of quietly
-omitting them. That is a real limit of file-based distribution.
-
 Two roots (`.agents`, `.claude`) are **shared compatibility paths** read by many of these
 products, so one install there covers the whole compatibility group — which is why a run
 can cover more platforms than the number of directories it writes. Two others
 (`.agents` via `npx skills`, `.breezell` via the skillhub store) keep their own manifests;
 a hand-copied skill is absent from them and the manager may prune it. The installer says
 so after writing there, and the `agent-plugin/` bundle below is the durable route.
+
+### Supported platforms (51 install targets)
+
+| Platform | Root | Also reads |
+|---|---|---|
+| Claude Code | `~/.claude/skills/` | `.agents/skills/` |
+| Codex CLI | `~/.codex/skills/` | `.agents/skills/` |
+| GitHub Copilot | `~/.copilot/skills/` | `.claude/skills/`, `.agents/skills/` |
+| Cursor | `~/.cursor/skills/` | `.claude/skills/`, `.agents/skills/` |
+| Gemini CLI | `~/.gemini/skills/` | — |
+| Antigravity | `~/.gemini/antigravity/skills/` | `.agents/skills/` |
+| Antigravity IDE | `~/.antigravity-ide/skills/` | `.agents/skills/` |
+| OpenCode | `~/.config/opencode/skills/` | `.claude/skills/`, `.agents/skills/` |
+| Goose | `~/.config/goose/skills/` | `.agents/skills/` |
+| Roo Code | `~/.roo/skills/` | `.claude/skills/` |
+| OpenHands | `~/.agents/skills/` | `.claude/skills/` |
+| Kiro | `~/.kiro/skills/` | `.claude/skills/` |
+| TRAE | `~/.trae/skills/` | `.claude/skills/` |
+| Amp | `~/.amp/skills/` | `.claude/skills/` |
+| Shared root | `~/.agents/skills/` | — |
+| Breezell | `~/.breezell/skills/` | — || Cline | `~/.cline/skills/` | `.claude/skills/` |
+| Continue | `~/.continue/skills/` | `.claude/skills/` |
+| Windsurf | `~/.codeium/windsurf/skills/` | `.claude/skills/` |
+| Windsurf (alt root) | `~/.windsurf/skills/` | `.claude/skills/` |
+| Junie (JetBrains) | `~/.junie/skills/` | `.claude/skills/` |
+| Firebender | `~/.firebender/skills/` | `.claude/skills/` |
+| Factory / Piebald | `~/.factory/skills/` | `.agents/skills/` |
+| Letta | `~/.letta/skills/` | — |
+| Mux (Coder) | `~/.mux/skills/` | — |
+| Ona | `~/.ona/skills/` | `.claude/skills/` |
+| Qodo | `~/.qodo/skills/` | — |
+| Tabnine | `~/.tabnine/skills/` | — |
+| Mistral AI Vibe | `~/.vibe/skills/` | — |
+| Command Code | `~/.commandcode/skills/` | — |
+| Deep Code | `~/.deepcode/skills/` | — |
+| OpenClaw | `~/.agents/skills/` | workspace `/skills` |
+| DeepSeek Harness (dsh) | `~/.agents/skills/` | — |
+| VT Code | `~/.agents/skills/` | `.claude/skills/` |
+| Hermes Agent | `~/.hermes/skills/` | — |
+| Autohand Code CLI | `~/.autohand/skills/` | — |
+| ZeroClaw | `~/.zeroclaw/skills/` | — |
+| Vita | `~/.vita/skills/` | — |
+| Emdash | `~/.emdash/skills/` | — |
+| bub | `~/.bub/skills/` | — |
+| pi | `~/.pi/skills/` | — |
+| nanobot | `~/.nanobot/skills/` | — |
+| Superconductor | `~/.superconductor/skills/` | — |
+| OpenClaw (workspace) | `~/.openclaw/workspace/skills/` | — |
+| Workshop | `~/.workshop/skills/` | — |
+| WorkBuddy | `~/.workbuddy/skills/` | — |
+| QoderWork | `~/.qoderwork/skills/` | — |
+| Grok | `~/.grok/skills/` | — |
+| ZCode | `~/.zcode/skills/` | — |
+| Devin | `~/.devin/skills/` | — |
+| CodeBuddy | `~/.codebuddy/skills/` | `.claude/skills/` |
+
+The 11 showcase products with **no filesystem root** (Claude and ChatGPT apps, VS Code's
+project `.github/skills/`, Agentman, Databricks Genie Code, Snowflake Cortex Code,
+Pulumi Neo, Spring AI, fast-agent, Laravel Boost, Google AI Edge Gallery) are named by
+`--list` and covered in `references/platforms.md`; they load skills through their own API
+or package manager.
 
 ### 2. One platform, by hand
 
@@ -82,9 +137,15 @@ cp -r skills/self-improvement-loop ~/.claude/skills/
 | Breezell | `~/.breezell/skills/` |
 | Claude Code | `~/.claude/skills/` |
 | Codex CLI | `~/.codex/skills/` |
-| Cursor / Cline / Continue / Kiro / Amp / Grok | `~/.<agent>/skills/` |
-| Gemini CLI | `~/.gemini/skills/` |
 | GitHub Copilot | `~/.copilot/skills/` |
+| Cursor | `~/.cursor/skills/` |
+| Gemini CLI | `~/.gemini/skills/` |
+| OpenCode | `~/.config/opencode/skills/` |
+| Goose | `~/.config/goose/skills/` |
+| Cline / Continue / Kiro / Amp / Grok | `~/.<agent>/skills/` |
+
+The full roster — 51 install targets plus the 11 showcase products with no filesystem root —
+is in [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
 ### 3. Portable bundle (Agent Plugins 1.0)
 
