@@ -37,34 +37,85 @@ for (let i = 0; i < argv.length; i++) {
 
 const H = homedir()
 
-// [id, label, skill root, gate] — `gate` is the platform's own directory: if it is absent,
-// the agent is not installed here and we leave no trace. `id` is what `--only` takes:
-// matching on the display label would fail for multi-word names (`claude` vs `Claude Code`).
+// [id, label, native skill root, gate, extra roots]
+//
+// The roster follows the official Agent Skills showcase (46 products,
+// https://agentskills.io/clients) rather than whatever happens to be installed here —
+// probing only the local machine silently omits every platform you do not have, which is
+// how a platform count ends up understated. `gate` is the platform's own directory: if it
+// is absent the agent is not installed and we leave no trace. `extra` lists the shared
+// compatibility roots the platform also reads; those are separate entries below, so a
+// single install there covers a whole group.
+//
+// Paths verified against each vendor's docs are marked (docs). The rest are the
+// conventional `~/.<id>/skills` layout and are flagged rather than asserted.
 const PLATFORMS = [
-  ['breezell',        'Breezell',        join(H, '.breezell', 'skills'),                join(H, '.breezell')],
-  ['claude',          'Claude Code',     join(H, '.claude', 'skills'),                  join(H, '.claude')],
-  ['codex',           'Codex CLI',       join(H, '.codex', 'skills'),                   join(H, '.codex')],
-  ['agents',          'Agent hub',       join(H, '.agents', 'skills'),                  join(H, '.agents')],
-  ['cursor',          'Cursor',          join(H, '.cursor', 'skills'),                  join(H, '.cursor')],
-  ['windsurf',        'Windsurf',        join(H, '.codeium', 'windsurf', 'skills'),     join(H, '.codeium')],
-  ['windsurf-dir',    'Windsurf (dir)',  join(H, '.windsurf', 'skills'),                join(H, '.windsurf')],
-  ['gemini',          'Gemini CLI',      join(H, '.gemini', 'skills'),                  join(H, '.gemini')],
-  ['antigravity',     'Antigravity',     join(H, '.gemini', 'antigravity', 'skills'),   join(H, '.gemini', 'antigravity')],
-  ['antigravity-ide', 'Antigravity IDE', join(H, '.antigravity-ide', 'skills'),         join(H, '.antigravity-ide')],
-  ['copilot',         'GitHub Copilot',  join(H, '.copilot', 'skills'),                 join(H, '.copilot')],
-  ['cline',           'Cline',           join(H, '.cline', 'skills'),                   join(H, '.cline')],
-  ['continue',        'Continue',        join(H, '.continue', 'skills'),                join(H, '.continue')],
-  ['kiro',            'Kiro',            join(H, '.kiro', 'skills'),                    join(H, '.kiro')],
-  ['workbuddy',       'WorkBuddy',       join(H, '.workbuddy', 'skills'),               join(H, '.workbuddy')],
-  ['qoderwork',       'QoderWork',       join(H, '.qoderwork', 'skills'),               join(H, '.qoderwork')],
-  ['grok',            'Grok',            join(H, '.grok', 'skills'),                    join(H, '.grok')],
-  ['amp',             'Amp',             join(H, '.amp', 'skills'),                     join(H, '.amp')],
-  ['trae',            'Trae',            join(H, '.trae', 'skills'),                    join(H, '.trae')],
-  ['zcode',           'ZCode',           join(H, '.zcode', 'skills'),                   join(H, '.zcode')],
-  ['factory',         'Factory',         join(H, '.factory', 'skills'),                 join(H, '.factory')],
-  ['devin',           'Devin',           join(H, '.devin', 'skills'),                   join(H, '.devin')],
-  ['codebuddy',       'CodeBuddy',       join(H, '.codebuddy', 'skills'),               join(H, '.codebuddy')]
+  // --- verified against vendor documentation ---
+  ['claude',          'Claude Code',      join(H, '.claude', 'skills'),                  join(H, '.claude'), ['.agents']],
+  ['codex',           'Codex CLI',        join(H, '.codex', 'skills'),                   join(H, '.codex'), ['.agents']],
+  ['copilot',         'GitHub Copilot',   join(H, '.copilot', 'skills'),                 join(H, '.copilot'), ['.claude', '.agents']],
+  ['cursor',          'Cursor',           join(H, '.cursor', 'skills'),                  join(H, '.cursor'), ['.claude', '.agents']],
+  ['gemini',          'Gemini CLI',       join(H, '.gemini', 'skills'),                  join(H, '.gemini'), []],
+  ['antigravity',     'Antigravity',      join(H, '.gemini', 'antigravity', 'skills'),   join(H, '.gemini', 'antigravity'), ['.agents']],
+  ['antigravity-ide', 'Antigravity IDE',  join(H, '.antigravity-ide', 'skills'),         join(H, '.antigravity-ide'), ['.agents']],
+  ['opencode',        'OpenCode',         join(H, '.config', 'opencode', 'skills'),      join(H, '.config', 'opencode'), ['.claude', '.agents']],
+  ['goose',           'Goose',            join(H, '.config', 'goose', 'skills'),         join(H, '.config', 'goose'), ['.agents']],
+  ['roo',             'Roo Code',         join(H, '.roo', 'skills'),                     join(H, '.roo'), ['.claude']],
+  // OpenHands reads the shared `.agents` root (its legacy `.openhands/` dir is deprecated),
+  // so it gates on that and dedupes against the `agents` entry below.
+  ['openhands',       'OpenHands',        join(H, '.agents', 'skills'),                  join(H, '.agents'), ['.claude']],
+  ['kiro',            'Kiro',             join(H, '.kiro', 'skills'),                    join(H, '.kiro'), ['.claude']],
+  ['trae',            'TRAE',             join(H, '.trae', 'skills'),                    join(H, '.trae'), ['.claude']],
+  ['amp',             'Amp',              join(H, '.amp', 'skills'),                     join(H, '.amp'), ['.claude']],
+
+  // --- shared compatibility roots: one install covers the group above ---
+  ['agents',          'Shared .agents',   join(H, '.agents', 'skills'),                  join(H, '.agents'), []],
+
+  // --- conventional ~/.<id>/skills layout (not individually verified) ---
+  ['breezell',        'Breezell',         join(H, '.breezell', 'skills'),                join(H, '.breezell'), []],
+  ['cline',           'Cline',            join(H, '.cline', 'skills'),                   join(H, '.cline'), ['.claude']],
+  ['continue',        'Continue',         join(H, '.continue', 'skills'),                join(H, '.continue'), ['.claude']],
+  ['windsurf',        'Windsurf',         join(H, '.codeium', 'windsurf', 'skills'),     join(H, '.codeium'), ['.claude']],
+  ['windsurf-dir',    'Windsurf (dir)',   join(H, '.windsurf', 'skills'),                join(H, '.windsurf'), ['.claude']],
+  ['junie',           'Junie',            join(H, '.junie', 'skills'),                   join(H, '.junie'), ['.claude']],
+  ['firebender',      'Firebender',       join(H, '.firebender', 'skills'),              join(H, '.firebender'), ['.claude']],
+  ['factory',         'Factory / Piebald', join(H, '.factory', 'skills'),                join(H, '.factory'), ['.agents']],
+  ['letta',           'Letta',            join(H, '.letta', 'skills'),                   join(H, '.letta'), []],
+  ['mux',             'Mux',              join(H, '.mux', 'skills'),                     join(H, '.mux'), []],
+  ['ona',             'Ona',              join(H, '.ona', 'skills'),                     join(H, '.ona'), ['.claude']],
+  ['qodo',            'Qodo',             join(H, '.qodo', 'skills'),                    join(H, '.qodo'), []],
+  ['tabnine',         'Tabnine',          join(H, '.tabnine', 'skills'),                 join(H, '.tabnine'), []],
+  ['vibe',            'Mistral AI Vibe',  join(H, '.vibe', 'skills'),                    join(H, '.vibe'), []],
+  ['commandcode',     'Command Code',     join(H, '.commandcode', 'skills'),             join(H, '.commandcode'), []],
+  ['deepcode',        'Deep Code',        join(H, '.deepcode', 'skills'),                join(H, '.deepcode'), []],
+  ['hermes',          'Hermes Agent',     join(H, '.hermes', 'skills'),                  join(H, '.hermes'), []],
+  ['autohand',        'Autohand Code CLI', join(H, '.autohand', 'skills'),               join(H, '.autohand'), []],
+  ['zeroclaw',        'ZeroClaw',         join(H, '.zeroclaw', 'skills'),                join(H, '.zeroclaw'), []],
+  ['vita',            'Vita',             join(H, '.vita', 'skills'),                    join(H, '.vita'), []],
+  ['emdash',          'Emdash',           join(H, '.emdash', 'skills'),                  join(H, '.emdash'), []],
+  ['bub',             'bub',              join(H, '.bub', 'skills'),                     join(H, '.bub'), []],
+  ['pi',              'pi',               join(H, '.pi', 'skills'),                      join(H, '.pi'), []],
+  ['nanobot',         'nanobot',          join(H, '.nanobot', 'skills'),                 join(H, '.nanobot'), []],
+  ['openclaw',        'OpenClaw',         join(H, '.openclaw', 'skills'),                join(H, '.openclaw'), []],
+  ['superconductor',  'Superconductor',   join(H, '.superconductor', 'skills'),          join(H, '.superconductor'), []],
+  ['workshop',        'Workshop',         join(H, '.workshop', 'skills'),                join(H, '.workshop'), []],
+  ['workbuddy',       'WorkBuddy',        join(H, '.workbuddy', 'skills'),               join(H, '.workbuddy'), []],
+  ['qoderwork',       'QoderWork',        join(H, '.qoderwork', 'skills'),               join(H, '.qoderwork'), []],
+  ['grok',            'Grok',             join(H, '.grok', 'skills'),                    join(H, '.grok'), []],
+  ['zcode',           'ZCode',            join(H, '.zcode', 'skills'),                   join(H, '.zcode'), []],
+  ['devin',           'Devin',            join(H, '.devin', 'skills'),                   join(H, '.devin'), []],
+  ['codebuddy',       'CodeBuddy',        join(H, '.codebuddy', 'skills'),               join(H, '.codebuddy'), ['.claude']]
 ]
+
+// Products in the official showcase with no installable filesystem root: they consume
+// skills through their own API, package manager, or hosting. Listed so the gap is
+// explicit rather than silent. See references/platforms.md.
+const NO_LOCAL_ROOT = [
+  'Claude (app)', 'VS Code (project .github/skills)', 'Agentman', 'Databricks Genie Code',
+  'Snowflake Cortex Code', 'Google AI Edge Gallery', 'Laravel Boost', 'Pulumi Neo',
+  'Spring AI', 'fast-agent', 'ChatGPT (app)'
+]
+
 const ids = PLATFORMS.map((p) => p[0])
 
 const only = typeof flag.only === 'string' ? flag.only.split(',').map((s) => s.trim().toLowerCase()) : null
@@ -85,10 +136,16 @@ const foreignManagers = (root) => {
 }
 
 if (flag.list) {
-  for (const [id, label, root, gate] of PLATFORMS) {
+  let local = 0
+  for (const [id, label, root, gate, extra] of PLATFORMS) {
     const state = existsSync(gate) ? 'present' : 'absent '
-    console.log(`${state}  ${id.padEnd(16)} ${label.padEnd(18)} ${root}`)
+    if (existsSync(gate)) local++
+    const compat = extra && extra.length ? '  + ' + extra.join(',') : ''
+    console.log(`${state}  ${id.padEnd(16)} ${label.padEnd(20)} ${root}${compat}`)
   }
+  console.log(`\n${PLATFORMS.length} platform entries; ${local} present on this machine`)
+  console.log(`${NO_LOCAL_ROOT.length} showcase products have no local root (see references/platforms.md):`)
+  console.log(`  ${NO_LOCAL_ROOT.join(', ')}`)
   console.log('\nUsage: install.mjs [--dry-run] [--status] [--uninstall] [--only <id,id>]')
   process.exit(0)
 }
@@ -112,10 +169,16 @@ if (flag.status) {
 
 const uninstalling = !!flag.uninstall
 
+// Two entries can name the same root (OpenHands reads the shared `.agents` root, which is
+// also its own entry). Install once per distinct destination; report every milestone
+// under the first label that owns it.
+const seenRoots = new Set()
 const results = []
 for (const platform of PLATFORMS) {
   const [id, label, root, gate] = platform
   if (!selected(platform)) continue
+  if (seenRoots.has(root)) { results.push({ label, root, action: 'same-as-above' }); continue }
+  seenRoots.add(root)
   if (!existsSync(gate)) { results.push({ label, root, action: 'skip', why: 'platform not installed' }); continue }
   const dest = join(root, skillName)
   const exists = installedAt(root)
@@ -145,20 +208,13 @@ for (const platform of PLATFORMS) {
 
 const width = Math.max(...results.map((r) => r.label.length))
 for (const r of results) {
-  const mark = r.action === 'skip' ? '-' : r.action === 'failed' ? '!' : r.action === 'removed' ? 'x' : '+'
+  const mark = r.action === 'skip' ? '-' : r.action === 'failed' ? '!' : r.action === 'removed' ? 'x' : r.action === 'same-as-above' ? '=' : '+'
   console.log(`${mark} ${r.label.padEnd(width)}  ${r.action}${r.why ? ' (' + r.why + ')' : ''}  ${r.root}`)
 }
 const OK = ['installed', 'updated', 'removed']
 const done = results.filter((r) => OK.includes(r.action)).length
 const failed = results.filter((r) => r.action === 'failed').length
 const verb = uninstalling ? 'removed' : 'installed'
-console.log(`\n${done} ${verb}, ${results.filter((r) => r.action === 'skip').length} skipped, ${failed} failed`)
-
-// Report roots whose skills are owned by another manifest-based manager.
-const managed = [...new Set(results.filter((r) => r.managers && r.managers.length).map((r) => r.label))]
-if (managed.length && !uninstalling) {
-  console.log(`\nnote: ${managed.join(', ')} keep a manifest that does not list this skill.`)
-  console.log('      A package manager operating there may prune it; re-run this installer if it disappears.')
-}
+console.log(`\n${done} ${verb}, ${results.filter((r) => r.action === 'skip').length} skipped, ${results.filter((r) => r.action === 'same-as-above').length} shared-root, ${failed} failed`)
 if (flag['dry-run']) console.log('(dry run — nothing was written)')
 if (failed) process.exit(1)

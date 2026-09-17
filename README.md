@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT--0-blue" alt="License: MIT-0">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="Node >= 18">
-  <img src="https://img.shields.io/badge/platforms-23-informational" alt="23 platforms">
+  <img src="https://img.shields.io/badge/platforms-46%20supported-2ea44f" alt="46 platforms supported">
 </p>
 
 # ratchet
@@ -41,26 +41,35 @@ The repo ships an installer that probes for known skill roots and installs only 
 platform is actually present. It never creates a directory for an agent you do not have.
 
 ```bash
-node skills/self-improvement-loop/scripts/install.mjs --list      # which platforms exist here
+node skills/self-improvement-loop/scripts/install.mjs --list      # roster + what exists here
 node skills/self-improvement-loop/scripts/install.mjs --dry-run   # show the plan
-node skills/self-improvement-loop/scripts/install.mjs             # install everywhere
-node skills/self-improvement-loop/scripts/install.mjs --only claude,codex
+node skills/self-improvement-loop/scripts/install.mjs             # install everywhere found
+node skills/self-improvement-loop/scripts/install.mjs --only claude,codex,kiro
 node skills/self-improvement-loop/scripts/install.mjs --status    # where is it installed?
 node skills/self-improvement-loop/scripts/install.mjs --uninstall # remove every copy
 ```
 
-`--only` takes short ids (`claude`, `codex`, `cursor`, ...) — see `--list`. Uninstalling by
-hand across 23 roots is how stale copies get left behind, so `--uninstall` (with
-`--dry-run` first, if you like) is the other half of `install`.
+`--only` takes short ids (`claude`, `codex`, `cursor`, `kiro`, `opencode`, ...) — see `--list`.
+Uninstalling by hand across dozens of roots is how stale copies get left behind, so
+`--uninstall` (with `--dry-run` first, if you like) is the other half of `install`.
 
-Covers 23 roots across Breezell, Claude Code, Codex CLI, the shared `.agents` hub, Cursor,
-Windsurf (both layouts), Gemini CLI, Antigravity (CLI + IDE), GitHub Copilot, Cline,
-Continue, Kiro, WorkBuddy, QoderWork, Grok, Amp, Trae, ZCode, Factory, Devin, CodeBuddy.
+The roster follows the **official Agent Skills showcase (46 products)** at
+<https://agentskills.io/clients>, not just what happens to be on this machine — probing
+locally finds only what you already have and silently understates the count. Full matrix,
+including which products share the compatibility roots: [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
-Two of these roots (`.agents` and `.breezell`) are managed by a package manager that keeps
-its own manifest (`npx skills`, the skillhub store). A skill copied in by hand is not in
-that manifest, so the manager may prune it on its next write; the installer says so after
-installing there. The `agent-plugin/` bundle below is the durable route for those.
+Eleven of the 46 have **no installable filesystem root** (ChatGPT and Claude apps,
+Databricks Genie Code, Snowflake Cortex Code, Pulumi Neo, Agentman, Spring AI,
+fast-agent, Laravel Boost, Google AI Edge Gallery, on-device). They consume skills
+through their own API or package manager; `--list` names them instead of quietly
+omitting them. That is a real limit of file-based distribution.
+
+Two roots (`.agents`, `.claude`) are **shared compatibility paths** read by many of these
+products, so one install there covers the whole compatibility group — which is why a run
+can cover more platforms than the number of directories it writes. Two others
+(`.agents` via `npx skills`, `.breezell` via the skillhub store) keep their own manifests;
+a hand-copied skill is absent from them and the manager may prune it. The installer says
+so after writing there, and the `agent-plugin/` bundle below is the durable route.
 
 ### 2. One platform, by hand
 

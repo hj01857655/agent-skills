@@ -1,0 +1,77 @@
+# Platform matrix
+
+Every platform that supports the Agent Skills format, and where this skill goes.
+
+The list is the official showcase (**46 products**) at
+<https://agentskills.io/clients>. It is deliberately **not** derived from what happens to
+be installed on one machine — a discovery-by-probing installer finds only what exists
+locally and silently omits the rest, which is how a "23 platform" claim ends up wrong.
+
+## How each platform loads skills
+
+Most support a **native root**. A large group also reads `.claude/skills/` or
+`.agents/skills/` as a compatibility path — that shared pair is why one install can cover
+many products at once.
+
+| Platform | Native root | Also reads | Notes |
+|---|---|---|---|
+| Claude Code | `~/.claude/skills/` | — | Rung 1 hooks; see `triggers.md` |
+| Claude (app) | upload per-session | — | No filesystem root; add via the skills UI |
+| ChatGPT & Codex | `~/.codex/skills/` | `.agents/skills/` | Hooks in `config.toml` |
+| VS Code | `.github/skills/` (project) | `.claude/skills/` | Copilot-backed |
+| GitHub Copilot | `~/.copilot/skills/` | `.claude/skills/`, `.agents/skills/` | |
+| Cursor | `~/.cursor/skills/` | `.claude/skills/`, `.agents/skills/` | Rules live in `.cursor/rules/*.mdc` |
+| Gemini CLI | `~/.gemini/skills/` | — | Entry file `GEMINI.md` |
+| Antigravity | `~/.gemini/antigravity/skills/` | `.agents/rules/` | Reads `AGENTS.md` |
+| OpenCode | `~/.config/opencode/skills/` | `.claude/skills/`, `.agents/skills/` | |
+| Goose | `~/.config/goose/skills/` | — | Block's agent |
+| Amp | `~/.config/amp/skills/` | `.claude/skills/` | |
+| OpenHands | `~/.openhands/skills/` | `.claude/skills/` | |
+| Roo Code | `~/.roo/skills/` | `.claude/skills/` | VS Code extension |
+| Junie | `~/.junie/skills/` | `.claude/skills/` | JetBrains |
+| Kiro | `~/.kiro/skills/` | `.claude/skills/` | |
+| TRAE | `~/.trae/skills/` | `.claude/skills/` | |
+| Factory / Piebald | `~/.factory/skills/` | — | |
+| Letta | `~/.letta/skills/` | — | |
+| Firebender | `~/.firebender/skills/` | `.claude/skills/` | |
+| Mux | `~/.mux/skills/` | — | Coder |
+| Ona | `~/.ona/skills/` | `.claude/skills/` | |
+| Qodo | `~/.qodo/skills/` | — | |
+| Tabnine | `~/.tabnine/skills/` | — | |
+| Mistral AI Vibe | `~/.vibe/skills/` | — | |
+| Command Code | `~/.commandcode/skills/` | — | |
+| Deep Code | `~/.deepcode/skills/` | — | |
+| Hermes Agent | `~/.hermes/skills/` | — | |
+| Autohand Code CLI | `~/.autohand/skills/` | — | |
+| ZeroClaw | `~/.zeroclaw/skills/` | — | |
+| Vita | `~/.vita/skills/` | — | |
+| Emdash | `~/.emdash/skills/` | — | |
+| bub | `~/.bub/skills/` | — | |
+| pi | `~/.pi/skills/` | — | `pi-mono` |
+| nanobot | `~/.nanobot/skills/` | — | |
+| OpenClaw | `~/.openclaw/skills/` | — | has its own hook system |
+| Superconductor | `~/.superconductor/skills/` | — | |
+| Workshop | `~/.workshop/skills/` | — | |
+| Agentman | hosted | — | no local root |
+| Databricks Genie Code | hosted | — | no local root |
+| Snowflake Cortex Code | hosted | — | no local root |
+| Google AI Edge Gallery | on-device | — | no local root |
+| Laravel Boost | project (`packages/`) | — | Composer package |
+| Pulumi Neo | hosted | — | no local root |
+| Spring AI | JVM library | — | programmatic API |
+| fast-agent | Python library | — | programmatic API |
+
+**Hosted and library products have no installable root.** They consume skills through
+their own API or package manager, so `install.mjs` cannot place anything there — it lists
+them and skips. That is a real limit of file-based distribution, not an oversight.
+
+## How the installer picks a root
+
+`install.mjs` probes platform directories and installs only where the platform exists, so
+nothing is created for agents you do not have. The shared **`.agents/skills/`** and
+**`.claude/skills/`** roots are installed too, because for the compatibility group they
+are the path that actually gets read even when the native root is absent.
+
+Because those two roots are shared, installing to them can cover products whose own
+directory does not exist on this machine — that is intended, and is why a run reports
+more platforms than the number of directories it created.
