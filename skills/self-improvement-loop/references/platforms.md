@@ -7,7 +7,7 @@ The list is the official showcase (**46 products**) at
 be installed on one machine — a discovery-by-probing installer finds only what exists
 locally and silently omits the rest, which is how a "23 platform" claim ends up wrong.
 
-Those 46 products map to **55 install roots** in `install.mjs`: several vendors ship
+Those 46 products map to **56 install roots** in `install.mjs`: several vendors ship
 separate regional builds with their own directories, and a compatibility root is shared
 by many products at once. Counts of "products" and "roots" are different numbers and are
 kept distinct throughout this file.
@@ -43,7 +43,8 @@ many products at once.
 | OpenHands | `~/.agents/skills/` | `.claude/skills/` | `.openhands/` is legacy |
 | Roo Code | `~/.roo/skills/` | `.claude/skills/` | VS Code extension |
 | Junie | `~/.junie/skills/` | `.claude/skills/` | JetBrains |
-| Kiro | `~/.kiro/skills/` | `.claude/skills/` | |
+| Kiro | `~/.kiro/skills/` | `.claude/skills/` | workspace `.kiro/skills/` too |
+| Kiro Crew | `~/.kiro/crew/skills/` | — | separate Kiro product; own skills root | |
 | TRAE | `~/.trae/skills/` | `.claude/skills/` |
 | **TRAE CN** | `~/.trae-cn/skills/` | `.claude/skills/` | trae.cn; a separate build from trae.ai | |
 | **Windsurf** | `~/.codeium/windsurf/skills/` | `.claude/skills/` | |

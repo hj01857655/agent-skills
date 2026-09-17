@@ -68,6 +68,9 @@ const PLATFORMS = [
   // so it gates on that and dedupes against the `agents` entry below.
   ['openhands',       'OpenHands',        join(H, '.agents', 'skills'),                  join(H, '.agents'), ['.claude']],
   ['kiro',            'Kiro',             join(H, '.kiro', 'skills'),                    join(H, '.kiro'), ['.claude']],
+  // Kiro Crew is a separate Kiro product with its own skills root (kiro.dev/docs/crew):
+  // its bundled and custom skills live under ~/.kiro/crew/skills, not ~/.kiro/skills.
+  ['kiro-crew',       'Kiro Crew',        join(H, '.kiro', 'crew', 'skills'),            join(H, '.kiro', 'crew'), []],
   ['trae',            'TRAE',             join(H, '.trae', 'skills'),                    join(H, '.trae'), ['.claude']],
   ['amp',             'Amp',              join(H, '.amp', 'skills'),                     join(H, '.amp'), ['.claude']],
 

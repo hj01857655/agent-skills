@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT--0-blue" alt="License: MIT-0">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="Node >= 18">
-  <img src="https://img.shields.io/badge/platforms-55%20install%20roots-2ea44f" alt="55 install roots">
+  <img src="https://img.shields.io/badge/platforms-55%20install%20roots-2ea44f" alt="56 install roots">
 </p>
 
 # ratchet
@@ -56,7 +56,7 @@ Uninstalling by hand across dozens of roots is how stale copies get left behind,
 The roster follows the **official Agent Skills showcase (46 products)** at
 <https://agentskills.io/clients>, not just what happens to be on this machine — probing
 locally finds only what you already have and silently understates the count. Those 46
-products map to **55 install roots** here, because several ship separate regional builds
+products map to **56 install roots** here, because several ship separate regional builds
 and some share a compatibility root. Full matrix, including which products share the
 compatibility roots: [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
@@ -67,7 +67,7 @@ can cover more platforms than the number of directories it writes. Two others
 a hand-copied skill is absent from them and the manager may prune it. The installer says
 so after writing there, and the `agent-plugin/` bundle below is the durable route.
 
-### Supported platforms (55 install roots)
+### Supported platforms (56 install roots)
 
 | Platform | Root | Also reads |
 |---|---|---|
@@ -83,11 +83,13 @@ so after writing there, and the `agent-plugin/` bundle below is the durable rout
 | Roo Code | `~/.roo/skills/` | `.claude/skills/` |
 | OpenHands | `~/.agents/skills/` | `.claude/skills/` |
 | Kiro | `~/.kiro/skills/` | `.claude/skills/` |
+| Kiro Crew | `~/.kiro/crew/skills/` | — |
 | TRAE | `~/.trae/skills/` | `.claude/skills/` |
 | TRAE CN (`trae.cn`) | `~/.trae-cn/skills/` | `.claude/skills/` |
 | Amp | `~/.amp/skills/` | `.claude/skills/` |
 | Shared root | `~/.agents/skills/` | — |
-| Breezell | `~/.breezell/skills/` | — || Cline | `~/.cline/skills/` | `.claude/skills/` |
+| Breezell | `~/.breezell/skills/` | — |
+| Cline | `~/.cline/skills/` | `.claude/skills/` |
 | Continue | `~/.continue/skills/` | `.claude/skills/` |
 | Windsurf | `~/.codeium/windsurf/skills/` | `.claude/skills/` |
 | Windsurf (alt root) | `~/.windsurf/skills/` | `.claude/skills/` |
@@ -147,10 +149,10 @@ cp -r skills/self-improvement-loop ~/.claude/skills/
 | Cursor | `~/.cursor/skills/` |
 | Gemini CLI | `~/.gemini/skills/` |
 | OpenCode | `~/.config/opencode/skills/` |
-| Goose | `~/.config/goose/skills/` |
+| Goose | `~/.agents/skills/` |
 | Cline / Continue / Kiro / Amp / Grok | `~/.<agent>/skills/` |
 
-The full roster — 55 install roots plus the 11 showcase products with no filesystem root —
+The full roster — 56 install roots plus the 11 showcase products with no filesystem root —
 is in [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
 ### 3. Portable bundle (Agent Plugins 1.0)
@@ -285,4 +287,5 @@ What is genuinely different here:
   judgement made from memory.
 
 What is borrowed deliberately is the packaging lesson: a portable manifest plus an
-`install.mjs` that covers 21 platforms beats hand-copying into each agent's directory.
+`install.mjs` that covers 55 roots across 46 products beats hand-copying each skill into
+each agent's directory.
