@@ -26,12 +26,10 @@ mechanisms are what make this different:
 |---|---|
 | **Write gate** (five questions) | The log filling with noise so the signal is unreadable |
 | **Deterministic identity** — `sha1(normalized pattern_key)` | Duplicate rows for one problem, split recurrence counts, hand-written IDs that collide |
-| **Watch predicate + verdict** | A promoted rule silently failing forever with nobody noticing |
+| **Promotion writes the rule, behind a marker** | A ledger claiming *"the rule lives in CLAUDE.md"* without ever looking — the rule is deleted and nothing notices |
+| **Guards, not prose** | "Did the rule hold?" being a judgement made from memory instead of an exit code |
 
-The third is the point. Every promoted rule carries a one-line, observable predicate
-describing what *the return of the mistake* looks like. When it returns, the rule is
-marked `ineffective` and goes back to be rewritten or automated. That feedback path is
-the difference between self-documenting and self-improving.
+The third and fourth are the point. `promote` **writes** the rule into its home file behind an invisible marker, so the claim is checkable; `check` confirms every rule is still there and every guard still passes, and **fails the build** when one is not. A rule that regresses is caught by machinery, not by attention — that feedback path is the difference between self-documenting and self-improving.
 
 ## Install
 
@@ -109,21 +107,22 @@ cat > .learnings/inbox/finding.json <<'EOF'
 EOF
 node .learnings/ledger.mjs ingest && node .learnings/ledger.mjs digest
 
-# 2. Promote — only once the evidence is there (recurrence >= 3)
-#    --watch and --target are both required: an unverifiable rule, or one placed
-#    nowhere, is not a rule yet.
+# 2. Promote — only once the evidence is there (recurrence >= 3).
+#    Writes the rule into CLAUDE.md behind a marker, so it stays checkable.
 node .learnings/ledger.mjs promote lrn-ab12cd34 \
-  --target "CLAUDE.md#tests" \
-  --watch "a test references a top-level quota field"
+  --target "CLAUDE.md#Build" \
+  --watch "a test references a top-level quota field" \
+  --rule "Assert against usageData.usageBreakdownList[0], not top-level quota"
 
-# 3. Verify — did the rule hold?
-node .learnings/ledger.mjs verify lrn-ab12cd34 --result recurred --note "b.test.ts did it again"
-# -> status: ineffective, back in play
+# 3. Enforce — compile the rule into a guard that fails the build when broken
+node .learnings/ledger.mjs enforce lrn-ab12cd34 --cmd "! grep -rq 'package-lock.json' ."
+
+# 4. Check — run it in the test/CI command; exit 1 on regression
+node .learnings/ledger.mjs check
 ```
 
 The script refuses a promotion below the threshold, and refuses one with no `--watch` —
 those are the two ways a rule becomes unverifiable.
-
 ## Make it fire on its own
 
 Everything above depends on someone remembering to run it. `brief` is the reminder, and
@@ -140,7 +139,9 @@ node .learnings/ledger.mjs brief   # prints what needs attention, or nothing
 |---|---|
 | `ingest` | Consume `inbox/*.json`; dedupe by identity; bump recurrence |
 | `list [--status X] [--area Y] [--kind Z]` | Filter entries |
-| `promote <id> --watch W --target T [--force --reason R]` | Start watching a rule (both flags required) |
+| `promote <id> --watch W --target T [--rule R]` | Write the rule into its home (`FILE#Section`) behind a marker |
+| `enforce <id> --cmd C` | Compile the rule into a guard; fails the build when broken |
+| `check` | Run guards + verify every rule is still in its home; exits 1 on regression |
 | `verify <id> --result held\|recurred [--note N]` | Record whether it held (idempotent) |
 | `extract <id> [--dir D]` | Turn a settled rule into a new skill skeleton || `merge <keep-id> <drop-id>` | Fold a duplicate; evidence preserved, not deleted |
 | `doctor` | Integrity check; exits 1 when dirty |

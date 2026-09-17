@@ -122,7 +122,20 @@ node .learnings/ledger.mjs stats
 node .learnings/ledger.mjs list --status open
 ```
 
-**Distill, then place.** Turn the entry into one imperative rule and cut the incident story — verbose: *"Attempted npm install but the project uses pnpm workspaces; lock file is pnpm-lock.yaml."* → rule: *"Use `pnpm install`; this repo uses pnpm workspaces."* Place it in exactly one native-memory home (targets above), then record the promotion.
+**Distill, then place.** Turn the entry into one imperative rule and cut the incident story — verbose: *"Attempted npm install but the project uses pnpm workspaces; lock file is pnpm-lock.yaml."* → rule: *"Use `pnpm install`; this repo uses pnpm workspaces."*
+
+`promote` **writes the rule into its home itself** — one line, under the named section, behind an invisible `<!-- ratchet:<id> -->` marker:
+
+```bash
+node .learnings/ledger.mjs promote lrn-ab12cd34 \
+  --watch "package-lock.json appears in a diff" \
+  --target "CLAUDE.md#Build" \
+  --rule "Use pnpm install; this repo uses pnpm workspaces"
+```
+
+That is deliberate. A ledger that records *"the rule now lives in CLAUDE.md"* without ever looking is asserting something it cannot know — and a rule silently deleted from its home is precisely the failure this product exists to catch. Because the line is written behind a marker, the claim stays checkable: `check` confirms it is still there and still says what was recorded, and **fails the build when it is not**. Never hand-edit a promoted rule into a file; promote it.
+
+Targets are `FILE#Section` (`CLAUDE.md#Build`, `AGENTS.md#Rules`). The section heading is created if absent, and unrelated content is left untouched.
 
 ### The watch predicate — this is the point
 
@@ -228,12 +241,22 @@ which is what a passing guard looks like), `FAILING NOW`, or `BROKEN` (the comma
 not run at all; check the path and quoting). Only a clean guard moves the entry to
 `enforced`.
 
-`check` runs every guard and, when one fails, marks that rule `ineffective`, bumps its
-recurrence, and **exits 1** — so a build that runs `check` goes red the moment a rule
-regresses, with no one needing to remember to look. Re-running does not inflate
-recurrence: one ongoing violation is one regression. A guard that merely broke is
-reported separately and does **not** fail the build — a typo in a guard must never be
-mistaken for a rule that stopped holding.
+`check` runs every guard **and every home binding**. When a guard fails, or a promoted
+rule has vanished from the file it was written to, it marks that rule `ineffective`,
+bumps its recurrence, and **exits 1** — so a build that runs `check` goes red the moment
+a rule regresses, with no one needing to remember to look. Re-running does not inflate
+recurrence: one ongoing violation is one regression. A guard that merely broke, or a rule
+**edited** in its home, is reported separately and does **not** fail the build — a typo in
+a guard must never be mistaken for a rule that stopped holding.
+
+```bash
+node .learnings/ledger.mjs check
+# {"ran":2,"passed":2,"regressed":[],"broken_guards":[],"enforced_total":1,
+#  "homes":{"checked":2,"deleted":[],"drifted":[]}}
+```
+
+Fix a vanished rule by re-running `promote` for that id — it rewrites the line rather
+than duplicating it.
 
 Prefer a guard over a note once you can express one. A rule with a guard needs no
 review discipline at all.
@@ -253,6 +276,51 @@ If `recurrence_after_promotion_pct` stays high across reviews, the promotion bar
 ## What this is and isn't
 
 This is **self-evaluation**: the loop measures whether its own rules changed behavior, and corrects itself. It is not self-modifying code — the agent does the thinking; this skill supplies the loop, the thresholds, and the ledger.
+
+## Audit: the loop retunes itself
+
+Everything above improves the project. This improves *the loop*. The thresholds are not
+constants — they live in `.learnings/config.json` and `audit` measures the funnel, says
+what the numbers imply, and with `--apply` turns the knobs.
+
+```bash
+node .learnings/ledger.mjs audit            # report only
+node .learnings/ledger.mjs audit --apply    # retune the policy, keeping a history
+```
+
+| Signal | What it means | What it changes |
+|---|---|---|
+| `hold_pct < 50` | Most rules we tested came back — the bar admits unproven ideas | raises `min_recurrence` |
+| `promotion_pct < 5` | Captures keep arriving and nothing graduates | lowers `min_recurrence` |
+| `enforcement_pct < 50` | Rules still depend on someone remembering | advisory — compile guards |
+| `attention_load > budget` | More rules need review than anyone will review | raises `attention_budget` |
+| `mostly_stated` | Verification is mostly by recall, the weakest form | advisory — enforce or probe |
+
+This is the difference between a system that can be *defended* and one that *adapts*.
+Every threshold here was previously a constant I had to argue for; now the system argues
+from its own outcomes.
+
+## Probe: verify the agent, not just the artifact
+
+A guard proves the file is correct. It cannot prove the agent changed. **Verification
+strength is a first-class property**, and the three levels are not equal:
+
+| Level | Set by | Means |
+|---|---|---|
+| `artifact` | `enforce` | A command checks it on every run — strongest |
+| `behavior` | `probe` | The situation was reconstructed and the mistake did not recur |
+| `stated` | `verify` | Someone recalled it — weakest |
+
+```bash
+# due for a behavioral probe? `brief` says so; then:
+node .learnings/ledger.mjs probe lrn-ab12cd34 --result held
+node .learnings/ledger.mjs probe lrn-ab12cd34 --result recurred --note "hit it again in step 4"
+```
+
+A `recurred` probe marks the rule `ineffective` and bumps recurrence (idempotent, as
+everywhere else). `brief` lists rules due for a probe — those promoted, not guarded, and
+not probed within `probe_interval_days`. A rule with an artifact-level guard is never due:
+the command outranks memory.
 
 ## Common mistakes
 
@@ -274,4 +342,7 @@ This is **self-evaluation**: the loop measures whether its own rules changed beh
 | Leaving the reminder unwired | Run `brief` at task start, or wire it per `references/triggers.md` — an unwired loop only fires when someone remembers. |
 | A rule that keeps holding but never becomes a skill | `extract` it; rules that generalize belong in a skill, not an ever-growing ledger. |
 | Leaving a rule as prose when it could be a command | `enforce` it — a guard removes the need for anyone to remember to check. |
+| Hand-editing a promoted rule into a file | `promote` writes it behind a marker; a hand-written rule is invisible to `check`. |
 | Treating a broken guard as a regression | A guard that cannot run is reported separately; fix the command, not the rule. |
+| Treating all verification as equal | `enforce` where a command can check it; only what remains is worth a probe. |
+| Leaving thresholds as constants | Run `audit --apply` — the loop should retune itself from its own hit rate. |
