@@ -14,6 +14,32 @@ node .learnings/ledger.mjs brief
 `scripts/hook.mjs` wraps it for platforms whose hooks receive a stdin payload; it
 drains stdin, prints the brief, and always exits 0.
 
+Both hook scripts are **optional** — nothing else in the skill depends on them. An agent
+with no hook support runs `brief` (rung 2/3 below) and gets the same information.
+
+## Which rung does my agent get?
+
+`scripts/install.mjs` places the skill in every platform present on the machine; wiring
+the reminder is a separate, per-platform step. Only some agents expose a session-start
+hook, so most land on rung 2 or 3.
+
+| Agent | Directory (installed by `install.mjs`) | Wiring |
+|---|---|---|
+| Claude Code | `~/.claude/skills/` | **Rung 1** — `SessionStart` + `PostToolUseFailure` hooks |
+| Codex CLI | `~/.codex/skills/`, `~/.agents/skills/` | **Rung 2** — `AGENTS.md`; hooks live in `config.toml`, not `settings.json` |
+| Breezell | `~/.breezell/skills/` | **Rung 2/3** — project `AGENTS.md`, else the skill description |
+| Cursor | `~/.cursor/skills/` | **Rung 2** — `.cursor/rules/*.mdc` (`.cursorrules` is deprecated and ignored by Agent mode) |
+| Windsurf | `~/.codeium/windsurf/skills/` or `~/.windsurf/skills/` | **Rung 2** — project rules file |
+| GitHub Copilot | `~/.copilot/skills/` | **Rung 2** — `.github/copilot-instructions.md` |
+| Gemini CLI | `~/.gemini/skills/` | **Rung 2** — `GEMINI.md` |
+| Antigravity (CLI + IDE) | `~/.gemini/antigravity/skills/`, `~/.antigravity-ide/skills/` | **Rung 2** — `AGENTS.md` at the workspace root, or `.agents/rules/` (global rules: `~/.gemini/GEMINI.md`) |
+| Cline / Continue / Kiro / Amp / Grok / Trae / ZCode / Factory / Devin / CodeBuddy | `~/.<agent>/skills/` | **Rung 2 or 3** — entry file if the agent reads one, otherwise the description |
+| WorkBuddy / QoderWork | `~/.workbuddy/skills/`, `~/.qoderwork/skills/` | **Rung 3** — skill description |
+
+Rung 2 is a one-line pointer in whatever file the agent reads at session start; the
+snippet is below. Where an agent has no entry file and no hooks, the skill's `description`
+is the only trigger — which works, just without the automatic reminder.
+
 ## Capability ladder
 
 Wire the highest rung the platform supports. Every rung works; the lower ones just
@@ -97,8 +123,10 @@ automatically) unless you are already driving hooks from `config.toml`.
 An entry file is read at the start of every session on most agents. One line there is
 enough to make the loop self-triggering.
 
-Add to whichever file the platform reads — `AGENTS.md` (Codex, others),
-`CLAUDE.md` (Claude Code without hooks), `.cursorrules`, `.agent-memory.md`:
+Add to whichever file the platform reads — `AGENTS.md` (Codex, Antigravity, and others),
+`CLAUDE.md` (Claude Code without hooks), `.cursor/rules/*.mdc` (Cursor),
+`.github/copilot-instructions.md` (Copilot), `GEMINI.md` (Gemini CLI), or
+`.agent-memory.md` as the generic fallback:
 
 ```markdown
 ## Learnings
