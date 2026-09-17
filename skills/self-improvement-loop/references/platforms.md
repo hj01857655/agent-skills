@@ -7,6 +7,11 @@ The list is the official showcase (**46 products**) at
 be installed on one machine — a discovery-by-probing installer finds only what exists
 locally and silently omits the rest, which is how a "23 platform" claim ends up wrong.
 
+Those 46 products map to **55 install roots** in `install.mjs`: several vendors ship
+separate regional builds with their own directories, and a compatibility root is shared
+by many products at once. Counts of "products" and "roots" are different numbers and are
+kept distinct throughout this file.
+
 ## How each platform loads skills
 
 Most support a **native root**. A large group also reads `.claude/skills/` or

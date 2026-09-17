@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT--0-blue" alt="License: MIT-0">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="Node >= 18">
-  <img src="https://img.shields.io/badge/platforms-46%20supported-2ea44f" alt="46 platforms supported">
+  <img src="https://img.shields.io/badge/platforms-55%20install%20roots-2ea44f" alt="55 install roots">
 </p>
 
 # ratchet
@@ -55,8 +55,10 @@ Uninstalling by hand across dozens of roots is how stale copies get left behind,
 
 The roster follows the **official Agent Skills showcase (46 products)** at
 <https://agentskills.io/clients>, not just what happens to be on this machine — probing
-locally finds only what you already have and silently understates the count. Full matrix,
-including which products share the compatibility roots: [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
+locally finds only what you already have and silently understates the count. Those 46
+products map to **55 install roots** here, because several ship separate regional builds
+and some share a compatibility root. Full matrix, including which products share the
+compatibility roots: [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
 Two roots (`.agents`, `.claude`) are **shared compatibility paths** read by many of these
 products, so one install there covers the whole compatibility group — which is why a run
@@ -65,7 +67,7 @@ can cover more platforms than the number of directories it writes. Two others
 a hand-copied skill is absent from them and the manager may prune it. The installer says
 so after writing there, and the `agent-plugin/` bundle below is the durable route.
 
-### Supported platforms (51 install targets)
+### Supported platforms (55 install roots)
 
 | Platform | Root | Also reads |
 |---|---|---|
@@ -148,7 +150,7 @@ cp -r skills/self-improvement-loop ~/.claude/skills/
 | Goose | `~/.config/goose/skills/` |
 | Cline / Continue / Kiro / Amp / Grok | `~/.<agent>/skills/` |
 
-The full roster — 51 install targets plus the 11 showcase products with no filesystem root —
+The full roster — 55 install roots plus the 11 showcase products with no filesystem root —
 is in [`references/platforms.md`](skills/self-improvement-loop/references/platforms.md).
 
 ### 3. Portable bundle (Agent Plugins 1.0)
