@@ -27,10 +27,25 @@ const inboxDir = join(dir, 'inbox')
 const digestPath = join(dir, 'DIGEST.md')
 
 const now = () => new Date().toISOString()
-const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+// Unicode-safe: `\p{L}\p{N}` keeps CJK and every other script. Stripping to
+// [a-z0-9] collapsed every non-Latin pattern_key to '' — and therefore to one
+// shared identity — silently merging unrelated entries into a single row.
+const norm = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 const emit = (o) => process.stdout.write(JSON.stringify(o, null, 2) + '\n')
 const days = (n) => n * 86400000
 const str = (v) => (typeof v === 'string' ? v : undefined)
+
+const ALLOWED_STATUS = ['open', 'watching', 'ineffective', 'resolved', 'wont_fix']
+const ALLOWED_RESULT = ['held', 'recurred']
+// Accept the obvious spellings (`wontfix`, `Wont Fix`) but never keep an unknown
+// status: rollup only archives resolved/wont_fix, so a typo'd status would make an
+// entry immortal with no error anywhere.
+const canonicalStatus = (s) => {
+  const v = String(s || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  if (ALLOWED_STATUS.includes(v)) return v
+  const loose = v.replace(/_/g, '')
+  return ALLOWED_STATUS.find((x) => x.replace(/_/g, '') === loose) || null
+}
 
 const readJsonl = (p) => existsSync(p)
   ? readFileSync(p, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => JSON.parse(l))
@@ -87,7 +102,8 @@ function mutate(id, fn) {
   const rows = readJsonl(ledgerPath)
   const row = rows.find((r) => r.id === id)
   if (!row) return { error: 'no such id: ' + id }
-  fn(row)
+  const refused = fn(row)
+  if (refused && refused.error) return refused
   writeJsonl(rows, ledgerPath)
   return row
 }
@@ -96,7 +112,10 @@ function stats() {
   const rows = readJsonl(ledgerPath)
   const archived = readJsonl(archivePath)
   const count = (f) => rows.reduce((a, r) => { const k = f(r); a[k] = (a[k] || 0) + 1; return a }, {})
-  const promoted = rows.filter((r) => r.promoted_to)
+  // Lifetime promotion metrics include archived rows: pruning the ledger must not
+  // reset the headline recurrence rate exactly when the history matters most.
+  const lifetime = [...rows, ...archived]
+  const promoted = lifetime.filter((r) => r.promoted_to)
   const recurred = promoted.filter((r) => r.verified && r.verified.result === 'recurred')
   const budget = Number(str(flag.budget) || 25)
   const byArea = count((r) => r.area)
@@ -105,6 +124,8 @@ function stats() {
     by_status: count((r) => r.status), by_area: byArea,
     promoted: promoted.length,
     recurrence_after_promotion_pct: promoted.length ? Math.round((recurred.length / promoted.length) * 100) : null,
+    awaiting_verification: rows.filter((r) => r.status === 'watching').length,
+    watchlist: rows.filter((r) => r.status === 'watching').map((r) => ({ id: r.id, watch: r.watch, target: r.promoted_to })),
     over_budget: Object.entries(byArea).filter(([, n]) => n > budget).map(([a, n]) => a + ':' + n),
     top_recurring: rows.slice().sort((a, b) => (b.recurrence || 1) - (a.recurrence || 1)).slice(0, 5)
       .map((r) => ({ id: r.id, key: r.pattern_key || r.summary, recurrence: r.recurrence, status: r.status }))
@@ -145,20 +166,45 @@ function rollup(cutoffDays) {
   return { archived: move.length, remaining: keep.length }
 }
 
+// Promotion is gated, not advisory: the SKILL.md thresholds are enforced here, so a
+// rule cannot enter the watch phase without evidence and a way to be verified.
+const isEligible = (r) => (r.recurrence || 1) >= 3 || (r.category === 'correction' && (r.recurrence || 1) >= 2)
+
 const commands = {
   ingest, stats, digest,
   rollup: () => rollup(Number(str(flag.days) || 30)),
-  status: () => mutate(pos[0], (r) => { r.status = pos[1] }),
+  status: () => {
+    const next = canonicalStatus(pos[1])
+    if (!next) return { error: 'invalid status: ' + pos[1] + ' (allowed: ' + ALLOWED_STATUS.join(', ') + ')' }
+    return mutate(pos[0], (r) => { r.status = next })
+  },
   promote: () => mutate(pos[0], (r) => {
+    if (!isEligible(r) && !flag.force) {
+      return { error: 'below promotion threshold: recurrence=' + (r.recurrence || 1) + ' (need >= 3, or >= 2 for a correction); use --force --reason "<why>" to override' }
+    }
+    if (flag.force && !str(flag.reason)) return { error: '--force requires --reason "<why this rule is promoted early>"' }
+    const watch = str(flag.watch)
+    if (!watch) return { error: '--watch "<observable predicate>" is required; a rule with no predicate can never be verified' }
     r.status = 'watching'
+    r.watch = watch
     if (str(flag.target)) r.promoted_to = str(flag.target)
-    if (str(flag.watch)) r.watch = str(flag.watch)
+    if (flag.force) r.forced_promotion = { at: now(), reason: str(flag.reason) }
   }),
-  verify: () => mutate(pos[0], (r) => {
-    r.verified = { at: now(), result: flag.result, note: str(flag.note) || '' }
-    if (flag.result === 'recurred') { r.status = 'ineffective'; r.recurrence = (r.recurrence || 1) + 1; r.last_seen = now() }
-    else r.status = 'resolved'
-  }),
+  verify: () => {
+    if (!ALLOWED_RESULT.includes(flag.result)) return { error: 'invalid --result: ' + flag.result + ' (allowed: ' + ALLOWED_RESULT.join(', ') + ')' }
+    return mutate(pos[0], (r) => {
+      const prev = r.verified ? r.verified.result : null
+      r.verified = { at: now(), result: flag.result, note: str(flag.note) || '' }
+      if (flag.result === 'recurred') {
+        r.status = 'ineffective'
+        // Idempotent: re-recording the same verdict must not inflate recurrence,
+        // which is the input to the promotion threshold.
+        if (prev !== 'recurred') { r.recurrence = (r.recurrence || 1) + 1; r.last_seen = now() }
+      } else {
+        r.status = 'resolved'
+      }
+    })
+  },
   list: () => readJsonl(ledgerPath).filter((r) =>
     (!flag.status || r.status === flag.status) && (!flag.area || r.area === flag.area) && (!flag.kind || r.kind === flag.kind))
 }
@@ -167,4 +213,7 @@ if (!commands[cmd]) {
   process.stdout.write('usage: ledger.mjs <ingest|list|stats|digest|rollup|status|promote|verify> [args]\n')
   process.exit(cmd === 'help' ? 0 : 1)
 }
-emit(commands[cmd]())
+const result = commands[cmd]()
+emit(result)
+// A refused operation must not exit 0, or a caller that checks the exit code sees success.
+if (result && result.error) process.exit(1)

@@ -35,7 +35,8 @@ The ledger is the machine source of truth for the whole series. Every command in
   "files": ["path/to/file"],
   "promoted_to": null,           // "CLAUDE.md#build" once promoted
   "watch": null,                 // observable predicate, e.g. "npm install in a diff"
-  "verified": null               // { at, result: held|recurred, note }
+  "verified": null,             // { at, result: held|recurred, note }
+  "forced_promotion": null      // { at, reason } when promoted below threshold via --force
 }
 ```
 
@@ -59,9 +60,17 @@ is deleted.
 | `list [--status X] [--area Y] [--kind Z]` | Filter active entries |
 | `stats [--budget N]` | Counts, budget overruns, recurrence-after-promotion % |
 | `digest` | Regenerate `DIGEST.md` |
-| `promote <id> [--target T] [--watch W]` | Set `watching`, attach target + predicate |
-| `verify <id> --result <held\|recurred> [--note N]` | Record verdict; `recurred` → `ineffective` |
-| `status <id> <status>` | Set status directly |
+| `promote <id> --watch W [--target T] [--force --reason R]` | Set `watching`, attach predicate; refuses below threshold or without `--watch` |
+| `verify <id> --result <held\|recurred> [--note N]` | Record verdict; `recurred` → `ineffective` (idempotent — re-recording does not inflate recurrence) |
+| `status <id> <status>` | Set status; unknown values are rejected, common spellings normalized |
 | `rollup [--days N]` | Archive closed, idle entries (default 30 days) |
 
-All commands take `--root <path>` to operate on a project other than the cwd.
+All commands take `--root <path>` to operate on a project other than the cwd. A refused
+operation prints `{"error": ...}` **and exits non-zero** — check the exit code.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Success, or `help` |
+| 1 | Unknown command, or an operation that was refused (bad id, invalid status, below promotion threshold, missing `--watch`) |

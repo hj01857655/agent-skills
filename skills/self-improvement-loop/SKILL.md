@@ -98,7 +98,12 @@ Promote an entry only when the ledger shows proof it is real:
 - it is actionable (states a "do X / never Y" rule); **and**
 - it is still `open` or `watching` (not `wont_fix`).
 
-"Promote if in doubt" is how memory turns into noise. If the numbers are not there, wait.
+"Promote if in doubt" is how memory turns into noise. If the numbers are not there, wait. **The script enforces this** — `promote` refuses an entry below the threshold. To promote early anyway, say why, and the override is recorded on the entry:
+
+```bash
+node .learnings/ledger.mjs promote lrn-ab12cd34 --force --reason "production incident; safe-guarding now" \
+  --target "CLAUDE.md#build" --watch "npm install or package-lock.json appears in a diff"
+```
 
 ```bash
 node .learnings/ledger.mjs stats
@@ -109,7 +114,7 @@ node .learnings/ledger.mjs list --status open
 
 ### The watch predicate — this is the point
 
-A rule that is never checked is a wish. Every promotion carries a one-line, observable predicate describing what the *return* of the mistake looks like.
+A rule that is never checked is a wish. Every promotion carries a one-line, observable predicate describing what the *return* of the mistake looks like — the script rejects a promotion without one.
 
 ```bash
 node .learnings/ledger.mjs promote lrn-ab12cd34 \
@@ -170,7 +175,8 @@ node .learnings/ledger.mjs rollup --days 30
 
 `stats` reports the metrics that say whether this loop is working:
 
-- `promoted` — rules currently under watch.
+- `awaiting_verification` / `watchlist` — every `watching` rule and its predicate. **Start each review here**; this is the to-do list.
+- `promoted` — rules under watch, counting archived ones too (pruning the ledger must not reset the history).
 - `recurrence_after_promotion_pct` — **the key number.** Low means rules stick. High means promotion is producing words, not change.
 - `top_recurring` — entries that keep coming back; each deserves a promotion or a real fix.
 
@@ -189,7 +195,7 @@ This is **self-evaluation**: the loop measures whether its own rules changed beh
 | Hand-writing `lrn-20250917-001` | Let the script hash it; hand IDs collide. |
 | Promoting on first occurrence | Wait for `recurrence >= 3` (or a twice-made correction). |
 | Copying the whole incident into memory | Distill to one imperative rule. |
-| Skipping `--watch` | Without a predicate the rule can never be verified. |
+| Skipping `--watch` | The script rejects the promotion — a rule with no predicate can never be verified. |
 | Writing the rule to two homes | One rule, one home. |
 | Never checking promoted rules | Check `watching` entries every review — that is the point. |
 | Re-promoting the same wording after a failure | Rewrite or automate it — words that failed will fail again. |
